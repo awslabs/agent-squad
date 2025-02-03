@@ -179,6 +179,7 @@ export class BedrockClassifier extends Classifier{
               const intentClassifierResult: ClassifierResult = {
                 selectedAgent: this.getAgentById(toolUse.input.selected_agent),
                 confidence: parseFloat(toolUse.input.confidence),
+                modelStats: []
               };
               return intentClassifierResult;
           }

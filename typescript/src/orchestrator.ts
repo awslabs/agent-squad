@@ -312,6 +312,8 @@ export class MultiAgentOrchestrator {
           return response;
         }
 
+        classifierResult.modelStats.push(...response.modelStats);
+
         let responseText = "No response content";
         if (
           response.content &&
@@ -344,7 +346,7 @@ export class MultiAgentOrchestrator {
       this.logger.printIntent(userInput, classifierResult);
   
       if (!classifierResult.selectedAgent && this.config.USE_DEFAULT_AGENT_IF_NONE_IDENTIFIED && this.defaultAgent) {
-        const fallbackResult = this.getFallbackResult();
+        const fallbackResult = this.getFallbackResult(classifierResult.modelStats);
         this.logger.info("Using default agent as no agent was selected");
         return fallbackResult;
       }
@@ -388,6 +390,7 @@ export class MultiAgentOrchestrator {
           metadata,
           output: accumulatorTransform,
           streaming: true,
+          modelStats:  [{"a":"streaming"}]
         };
       }
   
@@ -407,6 +410,7 @@ export class MultiAgentOrchestrator {
         metadata,
         output: agentResponse,
         streaming: false,
+        modelStats: classifierResult.modelStats
       };
     } catch (error) {
       this.logger.error("Error during agent processing:", error);
@@ -422,14 +426,16 @@ export class MultiAgentOrchestrator {
   ): Promise<AgentResponse> {
     this.executionTimes = new Map();
   
+    let modelStats = [];
     try {
       const classifierResult = await this.classifyRequest(userInput, userId, sessionId);
-  
+      modelStats =  classifierResult.modelStats;
       if (!classifierResult.selectedAgent) {
         return {
           metadata: this.createMetadata(classifierResult, userInput, userId, sessionId, additionalParams),
           output: this.config.NO_SELECTED_AGENT_MESSAGE!,
           streaming: false,
+          modelStats: modelStats
         };
       }
   
@@ -439,6 +445,7 @@ export class MultiAgentOrchestrator {
         metadata: this.createMetadata(null, userInput, userId, sessionId, additionalParams),
         output: this.config.GENERAL_ROUTING_ERROR_MSG_MESSAGE || String(error),
         streaming: false,
+        modelStats: modelStats
       };
     } finally {
       this.logger.printExecutionTimes(this.executionTimes);
@@ -561,10 +568,11 @@ export class MultiAgentOrchestrator {
     };
   }
 
-  private getFallbackResult(): ClassifierResult {
+  private getFallbackResult(modelStats: any[]): ClassifierResult {
     return {
       selectedAgent: this.getDefaultAgent(),
       confidence: 0,
+      modelStats: modelStats
     };
   }
 }

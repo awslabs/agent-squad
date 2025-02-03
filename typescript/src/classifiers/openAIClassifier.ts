@@ -137,6 +137,7 @@ export class OpenAIClassifier extends Classifier {
       const intentClassifierResult: ClassifierResult = {
         selectedAgent: this.getAgentById(toolInput.selected_agent),
         confidence: parseFloat(toolInput.confidence),
+        modelStats: [{"t":"o"}]
       };
       return intentClassifierResult;
 

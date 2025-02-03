@@ -109,6 +109,13 @@ async processRequest(
         tools: this.tools
       });
 
+      let modelStats = [];
+      let obj = {};
+      obj["id"] = response.id;
+      obj["model"] = response.model;
+      obj["usage"] = response.usage;
+      obj["from"] = "classifier";
+      modelStats.push(obj);
       const toolUse = response.content.find(
         (content): content is Anthropic.ToolUseBlock => content.type === "tool_use"
       );
@@ -126,6 +133,7 @@ async processRequest(
       const intentClassifierResult: ClassifierResult = {
         selectedAgent: this.getAgentById(toolUse.input.selected_agent),
         confidence: parseFloat(toolUse.input.confidence),
+        modelStats: modelStats
       };
       return intentClassifierResult;
 
