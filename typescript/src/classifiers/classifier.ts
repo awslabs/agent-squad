@@ -15,6 +15,9 @@ export interface ClassifierResult {
 
   //model usage stats
   modelStats : any[];
+
+  //addtioanl info
+  info?: any;
 }
 
 /**

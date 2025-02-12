@@ -194,8 +194,8 @@ export class OpenAIAgent extends Agent {
         throw new Error('No choices returned from OpenAI API');
       }
 
-      let modelStats = [];
-      let obj = {};
+      const modelStats = [];
+      const obj = {};
       obj["id"] = chatCompletion.id;
       obj["model"] = chatCompletion.model;
       obj["usage"] = chatCompletion.usage;

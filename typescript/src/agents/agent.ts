@@ -34,6 +34,7 @@ export type AgentResponse = {
   output: AccumulatorTransform | string;
   streaming: boolean;
   modelStats: any[];
+  info?: any;
 };
 
 export interface AgentOptions {

@@ -313,6 +313,10 @@ export class MultiAgentOrchestrator {
         }
 
         classifierResult.modelStats.push(...response.modelStats);
+        classifierResult.info =  {};
+        if(response.citations){
+          classifierResult.info["citations"] = response.citations;
+        }
 
         let responseText = "No response content";
         if (
@@ -410,7 +414,8 @@ export class MultiAgentOrchestrator {
         metadata,
         output: agentResponse,
         streaming: false,
-        modelStats: classifierResult.modelStats
+        modelStats: classifierResult.modelStats,
+        info: classifierResult.info
       };
     } catch (error) {
       this.logger.error("Error during agent processing:", error);
