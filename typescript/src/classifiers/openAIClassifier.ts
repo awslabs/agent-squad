@@ -77,7 +77,7 @@ export class OpenAIClassifier extends Classifier {
     this.client = new OpenAI({ apiKey: options.apiKey });
     this.modelId = options.modelId || OPENAI_MODEL_ID_GPT_O_MINI;
 
-    const defaultMaxTokens = 1000;
+    const defaultMaxTokens = 4096;
     this.inferenceConfig = {
       maxTokens: options.inferenceConfig?.maxTokens ?? defaultMaxTokens,
       temperature: options.inferenceConfig?.temperature,
@@ -137,6 +137,7 @@ export class OpenAIClassifier extends Classifier {
       const intentClassifierResult: ClassifierResult = {
         selectedAgent: this.getAgentById(toolInput.selected_agent),
         confidence: parseFloat(toolInput.confidence),
+        modelStats: [{"t":"o"}]
       };
       return intentClassifierResult;
 

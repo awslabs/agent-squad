@@ -14,6 +14,7 @@ import { isConversationMessage } from "../utils/helpers";
 export interface AnthropicAgentOptions extends AgentOptions {
   modelId?: string;
   streaming?: boolean;
+  logRequest?: boolean;
   toolConfig?: {
     tool: AgentTools | Anthropic.Tool[];
     useToolHandler: (response: any, conversation: any[]) => any;
@@ -58,6 +59,7 @@ export type AnthropicAgentOptionsWithAuth = AnthropicAgentOptions &
 export class AnthropicAgent extends Agent {
   private client: Anthropic;
   protected streaming: boolean;
+  private logRequest?: boolean;
   private modelId: string;
   protected customSystemPrompt?: string;
   protected inferenceConfig: {
@@ -71,7 +73,7 @@ export class AnthropicAgent extends Agent {
 
   public toolConfig?: {
     tool: AgentTools | Anthropic.Tool[];
-    useToolHandler?: (response: any, conversation: any[]) => any;
+    useToolHandler?: (response: any, conversation: any[], additionalParams : Record<string, string>) => any;
     toolMaxRecursions?: number;
   };
 
@@ -97,10 +99,11 @@ export class AnthropicAgent extends Agent {
     this.customVariables = {};
 
     this.streaming = options.streaming ?? false;
+    this.logRequest = options.logRequest ?? false;
 
     this.modelId = options.modelId || ANTHROPIC_MODEL_ID_CLAUDE_3_5_SONNET;
 
-    const defaultMaxTokens = 1000; // You can adjust this default value as needed
+    const defaultMaxTokens = 4096; // You can adjust this default value as needed
     this.inferenceConfig = {
       maxTokens: options.inferenceConfig?.maxTokens ?? defaultMaxTokens,
       temperature: options.inferenceConfig?.temperature ?? 0.1,
@@ -251,6 +254,7 @@ export class AnthropicAgent extends Agent {
     messages.push({ role: ParticipantRole.USER, content: inputText });
 
     this.updateSystemPrompt();
+    const modelStats = [];
 
     let systemPrompt = this.systemPrompt;
 
@@ -267,7 +271,7 @@ export class AnthropicAgent extends Agent {
 
     try {
       if (this.streaming) {
-        return this.handleStreamingResponse(messages, systemPrompt);
+        return this.handleStreamingResponse(messages, systemPrompt, _additionalParams);
       } else {
         let finalMessage: string = "";
         let toolUse = false;
@@ -289,10 +293,17 @@ export class AnthropicAgent extends Agent {
             }),
           };
           const response = await this.handleSingleResponse(llmInput);
+          const obj = {};
+          obj["id"] = response.id;
+          obj["model"] = response.model;
+          obj["usage"] = response.usage;
+          obj["from"] = "agent-anthropic";
+          modelStats.push(obj);
 
           const toolUseBlocks = response.content.filter<Anthropic.ToolUseBlock>(
             (content) => content.type === "tool_use"
           );
+
 
           if (toolUseBlocks.length > 0) {
             // Append current response to the conversation
@@ -317,11 +328,12 @@ export class AnthropicAgent extends Agent {
                 // Only use legacy handler when it's not AgentTools
                 return this.toolConfig.useToolHandler(
                   response,
-                  conversationHistory
+                  conversationHistory,
+                  _additionalParams
                 );
               });
 
-            const toolResponse = await toolHandler(response, messages);
+            const toolResponse = await toolHandler(response, messages, _additionalParams);
             const formattedResponse = this.formatToolResults(toolResponse);
 
             // Add the formatted response to messages
@@ -341,10 +353,10 @@ export class AnthropicAgent extends Agent {
 
           recursions--;
         } while (toolUse && recursions > 0);
-
         return {
           role: ParticipantRole.ASSISTANT,
           content: [{ text: finalMessage }],
+          modelStats: modelStats
         };
       }
     } catch (error) {
@@ -356,6 +368,9 @@ export class AnthropicAgent extends Agent {
 
   protected async handleSingleResponse(input: any): Promise<Anthropic.Message> {
     try {
+      if(this.logRequest){
+        console.log("Anthropic Request: ", JSON.stringify(input));
+      }
       const response = await this.client.messages.create(input);
       return response as Anthropic.Message;
     } catch (error) {
@@ -366,7 +381,8 @@ export class AnthropicAgent extends Agent {
 
   private async *handleStreamingResponse(
     messages: any[],
-    prompt: any
+    prompt: any,
+    additionalParams : Record<string, string>
   ): AsyncIterable<string> {
     let toolUse = false;
     let recursions = this.toolConfig?.toolMaxRecursions || 5;
@@ -422,7 +438,8 @@ export class AnthropicAgent extends Agent {
               messages.push(message);
               const toolResponse = await this.toolConfig!.useToolHandler(
                 message,
-                messages
+                messages,
+                additionalParams
               );
               messages.push(toolResponse);
               toolUse = true;

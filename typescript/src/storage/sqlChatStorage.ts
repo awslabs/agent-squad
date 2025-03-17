@@ -1,4 +1,4 @@
-import { Client, createClient } from '@libsql/client';
+import { Client, createClient } from '@libsql/client/web';
 import { ConversationMessage, ParticipantRole } from "../types";
 import { Logger } from "../utils/logger";
 import { ChatStorage } from "./chatStorage";

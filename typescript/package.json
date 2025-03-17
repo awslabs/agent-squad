@@ -1,31 +1,22 @@
 {
-  "name": "multi-agent-orchestrator",
-  "version": "0.1.5",
-  "description": "Multi-Agent Orchestrator framework",
+  "name": "@swatechnology/swa-multi-agent-orchestrator",
+  "version": "0.0.22",
+  "description": "Multi-Agent Orchestrator framework for SwaTech",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
     "dist"
   ],
   "author": {
-    "name": "Amazon Web Services",
-    "url": "https://aws.amazon.com"
+    "name": "SwaTech",
+    "url": "https://swa-ai.com"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/awslabs/multi-agent-orchestrator"
-  },
-  "bugs": {
-    "url": "https://github.com/awslabs/multi-agent-orchestrator/issues"
-  },
-  "homepage": "https://github.com/awslabs/multi-agent-orchestrator",
   "scripts": {
     "build": "tsc",
     "test": "jest",
     "lint": "eslint 'src/**/*.ts' 'tests/**/*.ts'",
     "coverage": "jest --coverage"
   },
-  "license": "Apache-2.0",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.24.3",
     "@aws-sdk/client-bedrock-agent-runtime": "^3.701.0",

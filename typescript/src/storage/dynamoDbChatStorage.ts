@@ -16,14 +16,16 @@ export class DynamoDbChatStorage extends ChatStorage {
   private docClient: DynamoDBDocumentClient;
   private ttlKey: string | null = null;
   private ttlDuration: number = 3600;
+  private isAgentHistory: boolean = false;
 
-  constructor(tableName: string, region: string, ttlKey?: string, ttlDuration?: number) {
+  constructor(tableName: string, region: string, ttlKey?: string, ttlDuration?: number, isAgentHistory?: boolean) {
     super();
     this.tableName = tableName;
     this.ttlKey = ttlKey || null;
     this.ttlDuration = Number(ttlDuration) || 3600;
     const client = new DynamoDBClient({ region });
     this.docClient = DynamoDBDocumentClient.from(client);
+    this.isAgentHistory = isAgentHistory;
   }
 
   async saveChatMessage(
@@ -141,7 +143,11 @@ export class DynamoDbChatStorage extends ChatStorage {
 
 
   private generateKey(userId: string, sessionId: string, agentId: string): string {
-    return `${sessionId}#${agentId}`;
+    if(this.isAgentHistory){
+      return `${sessionId}#${agentId}`;
+    }else{
+      return `${sessionId}`;
+    }
   }
 
   private removeTimestamps(messages: TimestampedMessage[] | ConversationMessage[]): ConversationMessage[] {

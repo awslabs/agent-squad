@@ -12,6 +12,12 @@ export interface ClassifierResult {
   // A numeric value representing the classifier's confidence in its selection
   // Typically a value between 0 and 1, where 1 represents 100% confidence
   confidence: number;
+
+  //model usage stats
+  modelStats : any[];
+
+  //addtioanl info
+  info?: any;
 }
 
 /**
@@ -26,6 +32,7 @@ export abstract class Classifier {
   protected promptTemplate: string;
   protected systemPrompt: string;
   protected customVariables: TemplateVariables;
+  protected logRequest?: boolean;
 
 
 

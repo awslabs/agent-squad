@@ -33,6 +33,8 @@ export type AgentResponse = {
   metadata: Omit<AgentProcessingResult, 'response'>;
   output: AccumulatorTransform | string;
   streaming: boolean;
+  modelStats: any[];
+  info?: any;
 };
 
 export interface AgentOptions {
@@ -144,7 +146,7 @@ abstract processRequest(
   userId: string,
   sessionId: string,
   chatHistory: ConversationMessage[],
-  additionalParams?: Record<string, string>
+  additionalParams?: Record<string, string>,
 ): Promise<ConversationMessage | AsyncIterable<any>>;
 
 }

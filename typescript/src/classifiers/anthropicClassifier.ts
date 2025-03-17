@@ -13,6 +13,8 @@ export interface AnthropicClassifierOptions {
   // If not provided, a default model may be used
   modelId?: string;
 
+  logRequest?: boolean;
+
   // Optional: Configuration for the inference process
   inferenceConfig?: {
     // Maximum number of tokens to generate in the response
@@ -76,9 +78,10 @@ export class AnthropicClassifier extends Classifier {
       throw new Error("Anthropic API key is required");
     }
     this.client = new Anthropic({ apiKey: options.apiKey });
+    this.logRequest = options.logRequest ?? false;
     this.modelId = options.modelId || ANTHROPIC_MODEL_ID_CLAUDE_3_5_SONNET;
     // Set default value for max_tokens if not provided
-    const defaultMaxTokens = 1000; // You can adjust this default value as needed
+    const defaultMaxTokens = 4096; // You can adjust this default value as needed
     this.inferenceConfig = {
       maxTokens: options.inferenceConfig?.maxTokens ?? defaultMaxTokens,
       temperature: options.inferenceConfig?.temperature,
@@ -109,6 +112,17 @@ async processRequest(
         tools: this.tools
       });
 
+      if(this.logRequest){
+        console.log(JSON.stringify(response));
+      }
+
+      const modelStats = [];
+      const obj = {};
+      obj["id"] = response.id;
+      obj["model"] = response.model;
+      obj["usage"] = response.usage;
+      obj["from"] = "anthropic_classifier";
+      modelStats.push(obj);
       const toolUse = response.content.find(
         (content): content is Anthropic.ToolUseBlock => content.type === "tool_use"
       );
@@ -126,6 +140,7 @@ async processRequest(
       const intentClassifierResult: ClassifierResult = {
         selectedAgent: this.getAgentById(toolUse.input.selected_agent),
         confidence: parseFloat(toolUse.input.confidence),
+        modelStats: modelStats
       };
       return intentClassifierResult;
 
