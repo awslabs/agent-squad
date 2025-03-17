@@ -17,6 +17,7 @@ type WithClient = {
 export interface OpenAIAgentOptions extends AgentOptions {
   model?: string;
   streaming?: boolean;
+  logRequest?: boolean;
   inferenceConfig?: {
     maxTokens?: number;
     temperature?: number;
@@ -33,12 +34,13 @@ export interface OpenAIAgentOptions extends AgentOptions {
 
 export type OpenAIAgentOptionsWithAuth = OpenAIAgentOptions & (WithApiKey | WithClient);
 
-const DEFAULT_MAX_TOKENS = 1000;
+const DEFAULT_MAX_TOKENS = 4096;
 
 export class OpenAIAgent extends Agent {
   private client: OpenAI;
   private model: string;
   private streaming: boolean;
+  private logRequest?: boolean;
   private inferenceConfig: {
     maxTokens?: number;
     temperature?: number;
@@ -67,6 +69,7 @@ export class OpenAIAgent extends Agent {
 
     this.model = options.model ?? OPENAI_MODEL_ID_GPT_O_MINI;
     this.streaming = options.streaming ?? false;
+    this.logRequest =  options.logRequest ?? false;
     this.inferenceConfig = {
       maxTokens: options.inferenceConfig?.maxTokens ?? DEFAULT_MAX_TOKENS,
       temperature: options.inferenceConfig?.temperature,
@@ -189,6 +192,9 @@ export class OpenAIAgent extends Agent {
   private async handleSingleResponse(input: any): Promise<ConversationMessage> {
     try {
       const nonStreamingOptions = { ...input, stream: false };
+      if(this.logRequest){
+        console.log("Open AI Request: ", JSON.stringify(nonStreamingOptions));
+      }
       const chatCompletion = await this.client.chat.completions.create(nonStreamingOptions);
       if (!chatCompletion.choices || chatCompletion.choices.length === 0) {
         throw new Error('No choices returned from OpenAI API');

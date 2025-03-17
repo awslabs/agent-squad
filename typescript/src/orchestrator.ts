@@ -295,17 +295,25 @@ export class MultiAgentOrchestrator {
           `Routing intent "${userInput}" to ${selectedAgent.id} ...`
         );
 
-        const response = await this.measureExecutionTime(
-          `Agent ${selectedAgent.name} | Processing request`,
-          () =>
-            selectedAgent.processRequest(
-              userInput,
-              userId,
-              sessionId,
-              agentChatHistory,
-              additionalParams
-            )
-        );
+        // const response = await this.measureExecutionTime(
+        //   `Agent ${selectedAgent.name} | Processing request`,
+        //   async () =>
+        //     await selectedAgent.processRequest(
+        //       userInput,
+        //       userId,
+        //       sessionId,
+        //       agentChatHistory,
+        //       additionalParams
+        //     )
+        // );
+
+        const response =  await selectedAgent.processRequest(
+          userInput,
+          userId,
+          sessionId,
+          agentChatHistory,
+          additionalParams
+        )
 
         //if (this.isStream(response)) {
         if (this.isAsyncIterable(response)) {
@@ -325,6 +333,10 @@ export class MultiAgentOrchestrator {
           response.content[0].text
         ) {
           responseText = response.content[0].text;
+        }else{
+          this.logger.info(
+            `No Response content: ${JSON.stringify(response)}`
+          );
         }
 
         return responseText;

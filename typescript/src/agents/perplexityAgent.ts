@@ -4,7 +4,7 @@ import { Retriever } from "../retrievers/retriever";
 import {ConversationMessage,TemplateVariables, ParticipantRole, PERPLEXITY_MODEL_ID_SONAR_PRO} from "../types"
 import axios, { AxiosRequestConfig } from 'axios';
 
-const DEFAULT_MAX_TOKENS = 1000;
+const DEFAULT_MAX_TOKENS = 4096;
 
 export interface PerplexityAgentOptions extends AgentOptions {
     model: string;

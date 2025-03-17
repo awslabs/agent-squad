@@ -32,6 +32,7 @@ export abstract class Classifier {
   protected promptTemplate: string;
   protected systemPrompt: string;
   protected customVariables: TemplateVariables;
+  protected logRequest?: boolean;
 
 
 
