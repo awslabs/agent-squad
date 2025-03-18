@@ -102,7 +102,7 @@ async processRequest(
     };
 
     try {
-      const response = await this.client.messages.create({
+      const req = {
         model: this.modelId,
         max_tokens: this.inferenceConfig.maxTokens,
         messages: [userMessage],
@@ -110,10 +110,14 @@ async processRequest(
         temperature: this.inferenceConfig.temperature,
         top_p: this.inferenceConfig.topP,
         tools: this.tools
-      });
+      };
+      const response = await this.client.messages.create(req);
 
       if(this.logRequest){
+        console.log("\n\n---- Classifier ----");
+        console.log(JSON.stringify(req));
         console.log(JSON.stringify(response));
+        console.log("\n\n");
       }
 
       const modelStats = [];
