@@ -1,3 +1,4 @@
+import { error } from "console";
 import {
   ANTHROPIC_MODEL_ID_CLAUDE_3_5_SONNET,
   ConversationMessage,
@@ -100,56 +101,87 @@ async processRequest(
       role: ParticipantRole.USER,
       content: inputText,
     };
+ 
+    let retry = true;
+    let executionCount = 0;
+    while(retry){
+      retry = false;
+      executionCount = executionCount+1;
+      try {
+        const req = {
+          model: this.modelId,
+          max_tokens: this.inferenceConfig.maxTokens,
+          messages: [userMessage],
+          system: this.systemPrompt,
+          temperature: this.inferenceConfig.temperature,
+          top_p: this.inferenceConfig.topP,
+          tools: this.tools
+        };
+        const response = await this.client.messages.create(req);
+        
+  
+        if(this.logRequest){
+          console.log("\n\n---- Classifier ----");
+          console.log(JSON.stringify(req));
+          console.log(JSON.stringify(response));
+          console.log("\n\n");
+        }
+  
+        const modelStats = [];
+        const obj = {};
+        obj["id"] = response.id;
+        obj["model"] = response.model;
+        obj["usage"] = response.usage;
+        obj["from"] = "anthropic_classifier";
+        modelStats.push(obj);
+        const toolUse = response.content.find(
+          (content): content is Anthropic.ToolUseBlock => content.type === "tool_use"
+        );
+  
+        if (!toolUse) {
+          throw new Error("No tool use found in the response");
+        }
+  
+        if (!isClassifierToolInput(toolUse.input)) {
+          throw new Error("Tool input does not match expected structure");
+        }
+  
+  
+        // Create and return IntentClassifierResult
+        const intentClassifierResult: ClassifierResult = {
+          selectedAgent: this.getAgentById(toolUse.input.selected_agent),
+          confidence: parseFloat(toolUse.input.confidence),
+          modelStats: modelStats
+        };
+        return intentClassifierResult;
+  
+      } catch (error) {
+        Logger.logger.error("Error processing request:", error);
 
-    try {
-      const response = await this.client.messages.create({
-        model: this.modelId,
-        max_tokens: this.inferenceConfig.maxTokens,
-        messages: [userMessage],
-        system: this.systemPrompt,
-        temperature: this.inferenceConfig.temperature,
-        top_p: this.inferenceConfig.topP,
-        tools: this.tools
-      });
-
-      if(this.logRequest){
-        console.log(JSON.stringify(response));
+        if(error.error.type === "overloaded_error"){
+          if(executionCount < 3){
+            retry = true;
+            await delay(executionCount*500);
+            Logger.logger.info(`Retrying due to overload error: delay ${executionCount*500}ms `);
+          }else{
+            Logger.logger.info(`Exceeded retry count for overload error`);
+            throw error;
+          }
+        }else{
+          // Instead of returning a default result, we'll throw the error
+          throw error;
+        }
+        
       }
-
-      const modelStats = [];
-      const obj = {};
-      obj["id"] = response.id;
-      obj["model"] = response.model;
-      obj["usage"] = response.usage;
-      obj["from"] = "anthropic_classifier";
-      modelStats.push(obj);
-      const toolUse = response.content.find(
-        (content): content is Anthropic.ToolUseBlock => content.type === "tool_use"
-      );
-
-      if (!toolUse) {
-        throw new Error("No tool use found in the response");
-      }
-
-      if (!isClassifierToolInput(toolUse.input)) {
-        throw new Error("Tool input does not match expected structure");
-      }
-
-
-      // Create and return IntentClassifierResult
-      const intentClassifierResult: ClassifierResult = {
-        selectedAgent: this.getAgentById(toolUse.input.selected_agent),
-        confidence: parseFloat(toolUse.input.confidence),
-        modelStats: modelStats
-      };
-      return intentClassifierResult;
-
-    } catch (error) {
-      Logger.logger.error("Error processing request:", error);
-      // Instead of returning a default result, we'll throw the error
-      throw error;
     }
+    throw error("Please try again.");
   }
 
 
+}
+
+function delay(t: number) {
+  return new Promise(resolve => {
+    setTimeout(resolve, t);
+  });
 }

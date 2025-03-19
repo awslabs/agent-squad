@@ -8,6 +8,7 @@ import { saveConversationExchange } from "./utils/chatUtils";
 import { Logger } from "./utils/logger";
 import { BedrockClassifier } from "./classifiers/bedrockClassifier";
 import { Classifier } from "./classifiers/classifier";
+import { ConversationMessage } from "./types";
 
 export interface OrchestratorConfig {
   /** If true, logs the chat interactions with the agent */
@@ -138,6 +139,8 @@ export interface DispatchToAgentsParams {
   // Optional: Additional parameters or metadata to be passed to the agents
   // Can store any key-value pairs of varying types
   additionalParams?: Record<string, any>;
+
+  chatHistory?: ConversationMessage[]
 }
 
 /**
@@ -276,6 +279,7 @@ export class MultiAgentOrchestrator {
       sessionId,
       classifierResult,
       additionalParams = {},
+      chatHistory
     } = params;
 
     try {
@@ -283,13 +287,13 @@ export class MultiAgentOrchestrator {
         return "I'm sorry, but I need more information to understand your request. Could you please be more specific?";
       } else {
         const { selectedAgent } = classifierResult;
-        const agentChatHistory = await this.storage.fetchChat(
-          userId,
-          sessionId,
-          selectedAgent.id
-        );
+        // const agentChatHistory = await this.storage.fetchChat(
+        //   userId,
+        //   sessionId,
+        //   selectedAgent.id
+        // );
 
-        this.logger.printChatHistory(agentChatHistory, selectedAgent.id);
+        // this.logger.printChatHistory(agentChatHistory, selectedAgent.id);
 
         this.logger.info(
           `Routing intent "${userInput}" to ${selectedAgent.id} ...`
@@ -311,7 +315,7 @@ export class MultiAgentOrchestrator {
           userInput,
           userId,
           sessionId,
-          agentChatHistory,
+          chatHistory,
           additionalParams
         )
 
@@ -350,10 +354,11 @@ export class MultiAgentOrchestrator {
   async classifyRequest(
     userInput: string,
     userId: string,
-    sessionId: string
+    sessionId: string, 
+    chatHistory: ConversationMessage[]
   ): Promise<ClassifierResult> {
     try {
-      const chatHistory = await this.storage.fetchAllChats(userId, sessionId) || [];
+      // const chatHistory = await this.storage.fetchAllChats(userId, sessionId) || [];
       const classifierResult = await this.measureExecutionTime(
         "Classifying user intent",
         () => this.classifier.classify(userInput, chatHistory)
@@ -379,7 +384,8 @@ export class MultiAgentOrchestrator {
     userId: string,
     sessionId: string,
     classifierResult: ClassifierResult,
-    additionalParams: Record<any, any> = {}
+    additionalParams: Record<any, any> = {},
+    chatHistory: ConversationMessage[]
   ): Promise<AgentResponse> {
     try {
       const agentResponse = await this.dispatchToAgent({
@@ -388,6 +394,7 @@ export class MultiAgentOrchestrator {
         sessionId,
         classifierResult,
         additionalParams,
+        chatHistory
       });
   
       const metadata = this.createMetadata(classifierResult, userInput, userId, sessionId, additionalParams);
@@ -445,7 +452,9 @@ export class MultiAgentOrchestrator {
   
     let modelStats = [];
     try {
-      const classifierResult = await this.classifyRequest(userInput, userId, sessionId);
+      const chatHistory = await this.storage.fetchAllChats(userId, sessionId) || [];
+      this.logger.printChatHistory(chatHistory);
+      const classifierResult = await this.classifyRequest(userInput, userId, sessionId, chatHistory);
       modelStats =  classifierResult.modelStats;
       if (!classifierResult.selectedAgent) {
         return {
@@ -456,7 +465,7 @@ export class MultiAgentOrchestrator {
         };
       }
   
-      return await this.agentProcessRequest(userInput, userId, sessionId, classifierResult, additionalParams);
+      return await this.agentProcessRequest(userInput, userId, sessionId, classifierResult, additionalParams, chatHistory);
     } catch (error) {
       return {
         metadata: this.createMetadata(null, userInput, userId, sessionId, additionalParams),
