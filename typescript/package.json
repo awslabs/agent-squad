@@ -1,6 +1,6 @@
 {
   "name": "@swatechnology/swa-multi-agent-orchestrator",
-  "version": "0.0.23",
+  "version": "0.0.24",
   "description": "Multi-Agent Orchestrator framework for SwaTech",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -15,7 +15,8 @@
     "build": "tsc",
     "test": "jest",
     "lint": "eslint 'src/**/*.ts' 'tests/**/*.ts'",
-    "coverage": "jest --coverage"
+    "coverage": "jest --coverage",
+    "version": "auto-changelog -p && git add CHANGELOG.md"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.24.3",
@@ -40,6 +41,7 @@
     "@types/mocha": "^10.0.7",
     "@typescript-eslint/eslint-plugin": "^7.17.0",
     "@typescript-eslint/parser": "^7.17.0",
+    "auto-changelog": "^2.5.0",
     "aws-sdk-client-mock": "^4.0.1",
     "aws-sdk-client-mock-jest": "^4.0.1",
     "eslint": "^8.57.0",
