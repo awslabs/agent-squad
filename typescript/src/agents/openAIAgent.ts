@@ -192,12 +192,16 @@ export class OpenAIAgent extends Agent {
   private async handleSingleResponse(input: any): Promise<ConversationMessage> {
     try {
       const nonStreamingOptions = { ...input, stream: false };
-      if(this.logRequest){
-        console.log("Open AI Request: ", JSON.stringify(nonStreamingOptions));
-      }
       const chatCompletion = await this.client.chat.completions.create(nonStreamingOptions);
+      
+      if(this.logRequest){
+        console.log("\n\n---- OpenAI Agent ----");
+        console.log(JSON.stringify(nonStreamingOptions));
+        console.log(JSON.stringify(chatCompletion));
+        console.log("\n\n");
+      }
       if (!chatCompletion.choices || chatCompletion.choices.length === 0) {
-        throw new Error('No choices returned from OpenAI API');
+        throw new Error('OpenAI Agent: No choices returned from OpenAI API');
       }
 
       const modelStats = [];
@@ -207,11 +211,11 @@ export class OpenAIAgent extends Agent {
       obj["usage"] = chatCompletion.usage;
       obj["from"] = "agent-openai";
       modelStats.push(obj);
-
+      Logger.logger.info(`Open AI Agent Usage: `, JSON.stringify(obj));
       const assistantMessage = chatCompletion.choices[0]?.message?.content;
 
       if (typeof assistantMessage !== 'string') {
-        throw new Error('Unexpected response format from OpenAI API');
+        throw new Error('OpenAI Agent: Unexpected response format from OpenAI API');
       }
 
       return {
@@ -220,7 +224,7 @@ export class OpenAIAgent extends Agent {
         modelStats: modelStats
       };
     } catch (error) {
-      Logger.logger.error('Error in OpenAI API call:', error);
+      Logger.logger.error('OpenAI Agent: Error in OpenAI API call:', error);
       throw error;
     }
   }

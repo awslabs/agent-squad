@@ -9,6 +9,7 @@ const DEFAULT_MAX_TOKENS = 4096;
 export interface PerplexityAgentOptions extends AgentOptions {
     model: string;
     apiKey: string;
+    logRequest?: boolean;
     inferenceConfig?: {
       maxTokens?: number;
       temperature?: number;
@@ -27,6 +28,7 @@ export class PerplexityAgent extends Agent {
 
     private model: string;
     private systemPrompt: string;
+    private logRequest?: boolean;
     private apiKey: string;
     protected retriever?: Retriever;
     private promptTemplate: string;
@@ -47,6 +49,7 @@ export class PerplexityAgent extends Agent {
       this.apiKey = options.apiKey;
       this.model = options.model ?? PERPLEXITY_MODEL_ID_SONAR_PRO;
       this.retriever = options.retriever ?? null;
+      this.logRequest =  options.logRequest ?? false;
 
       this.inferenceConfig = {
         maxTokens: options.inferenceConfig?.maxTokens ?? DEFAULT_MAX_TOKENS,
@@ -155,10 +158,16 @@ export class PerplexityAgent extends Agent {
       let perplexityResp: any;
       try{
         const retVal = await axios(requestOptions);
+        if(this.logRequest){
+          console.log("\n\n---- Perplexity Agent ----");
+          console.log(JSON.stringify(requestOptions));
+          console.log(JSON.stringify(retVal?.data));
+          console.log("\n\n");
+        }
         perplexityResp = retVal?.data;
         // console.log("Perplexity Resp: ", JSON.stringify(perplexityResp));
         if (!perplexityResp || perplexityResp.choices.length<1) {
-            throw new Error('Unexpected response format from Perplexity API');
+            throw new Error('Perplexity Agent: Unexpected response format from Perplexity API');
         }
 
         const modelStats = [];
@@ -168,11 +177,11 @@ export class PerplexityAgent extends Agent {
         obj["usage"] = perplexityResp.usage;
         obj["from"] = "agent-perplexity";
         modelStats.push(obj);
-
+        Logger.logger.info(`Perplexity Agent Usage: `, JSON.stringify(obj));
         const assistantMessage = perplexityResp.choices[0]?.message?.content;
 
         if (typeof assistantMessage !== 'string') {
-            throw new Error('Unexpected response format from Perplexity API');
+            throw new Error('Perplexity Agent: Unexpected response format from Perplexity API');
         }
         return {
             role: ParticipantRole.ASSISTANT,
@@ -182,9 +191,9 @@ export class PerplexityAgent extends Agent {
         };
       }catch(e){
         if(e.response){
-            Logger.logger.error('Error in Perplexity API call:', e.response);
+            Logger.logger.error('Perplexity Agent: Error in Perplexity API call:', e.response);
         }else{
-            Logger.logger.error('Error in Perplexity API call:', e);
+            Logger.logger.error('Perplexity Agent: Error in Perplexity API call:', e);
         }
       }
 

@@ -134,16 +134,17 @@ async processRequest(
         obj["usage"] = response.usage;
         obj["from"] = "anthropic_classifier";
         modelStats.push(obj);
+        Logger.logger.info(`Anthropic Classifier Usage: `, JSON.stringify(obj));
         const toolUse = response.content.find(
           (content): content is Anthropic.ToolUseBlock => content.type === "tool_use"
         );
   
         if (!toolUse) {
-          throw new Error("No tool use found in the response");
+          throw new Error("Classifier Error: No tool use found in the response");
         }
   
         if (!isClassifierToolInput(toolUse.input)) {
-          throw new Error("Tool input does not match expected structure");
+          throw new Error("Classifier Error: Tool input does not match expected structure");
         }
   
   
@@ -156,15 +157,15 @@ async processRequest(
         return intentClassifierResult;
   
       } catch (error) {
-        Logger.logger.error("Error processing request:", error);
+        Logger.logger.error("Classifier Error: Error classifying request:", error);
 
         if(error.error.type === "overloaded_error"){
           if(executionCount < 3){
             retry = true;
             await delay(executionCount*500);
-            Logger.logger.info(`Retrying due to overload error: delay ${executionCount*500}ms `);
+            Logger.logger.info(`Classifier Error: Overload Error: retry: ${executionCount}  delay ${executionCount*500}ms `);
           }else{
-            Logger.logger.info(`Exceeded retry count for overload error`);
+            Logger.logger.info(`Classifier Error: Exceeded retry count for overload error`);
             throw error;
           }
         }else{
@@ -174,7 +175,7 @@ async processRequest(
         
       }
     }
-    throw error("Please try again.");
+    throw error("Classifier Error: Please try again.");
   }
 
 

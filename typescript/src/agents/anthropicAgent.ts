@@ -299,6 +299,13 @@ export class AnthropicAgent extends Agent {
           obj["usage"] = response.usage;
           obj["from"] = "agent-anthropic";
           modelStats.push(obj);
+          Logger.logger.info(`Anthropic Agent Usage: `, JSON.stringify(obj));
+          if(this.logRequest){
+            console.log("\n\n---- Anthropic Agent ----");
+            console.log(JSON.stringify(llmInput));
+            console.log(JSON.stringify(response));
+            console.log("\n\n");
+          }
 
           const toolUseBlocks = response.content.filter<Anthropic.ToolUseBlock>(
             (content) => content.type === "tool_use"
@@ -360,7 +367,7 @@ export class AnthropicAgent extends Agent {
         };
       }
     } catch (error) {
-      Logger.logger.error("Error processing request:", error);
+      Logger.logger.error("Anthropic Agent: Error processing request:", error);
       // Instead of returning a default result, we'll throw the error
       throw error;
     }
@@ -368,13 +375,10 @@ export class AnthropicAgent extends Agent {
 
   protected async handleSingleResponse(input: any): Promise<Anthropic.Message> {
     try {
-      if(this.logRequest){
-        console.log("Anthropic Request: ", JSON.stringify(input));
-      }
       const response = await this.client.messages.create(input);
       return response as Anthropic.Message;
     } catch (error) {
-      Logger.logger.error("Error invoking Anthropic:", error);
+      Logger.logger.error("Anthropic Agent: Error invoking Anthropic:", error);
       throw error;
     }
   }
