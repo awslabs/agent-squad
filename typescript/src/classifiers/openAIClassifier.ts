@@ -1,16 +1,19 @@
 import OpenAI from "openai";
 import {
   ConversationMessage,
-  OPENAI_MODEL_ID_GPT_O_MINI
+  OPENAI_MODEL_ID_GPT_O_MINI,
 } from "../types";
 import { isClassifierToolInput } from "../utils/helpers";
 import { Logger } from "../utils/logger";
 import { Classifier, ClassifierResult } from "./classifier";
+import { ChatCompletionCreateParamsNonStreaming } from "openai/resources";
 
 export interface OpenAIClassifierOptions {
   // Optional: The ID of the OpenAI model to use for classification
   // If not provided, a default model may be used
   modelId?: string;
+
+  logRequest?: boolean;
 
   // Optional: Configuration for the inference process
   inferenceConfig?: {
@@ -75,6 +78,7 @@ export class OpenAIClassifier extends Classifier {
       throw new Error("OpenAI API key is required");
     }
     this.client = new OpenAI({ apiKey: options.apiKey });
+    this.logRequest = options.logRequest ?? false;
     this.modelId = options.modelId || OPENAI_MODEL_ID_GPT_O_MINI;
 
     const defaultMaxTokens = 4096;
@@ -112,7 +116,8 @@ export class OpenAIClassifier extends Classifier {
     ];
 
     try {
-      const response = await this.client.chat.completions.create({
+
+      const req: ChatCompletionCreateParamsNonStreaming = {
         model: this.modelId,
         messages: messages,
         max_tokens: this.inferenceConfig.maxTokens,
@@ -120,7 +125,25 @@ export class OpenAIClassifier extends Classifier {
         top_p: this.inferenceConfig.topP,
         tools: this.tools,
         tool_choice: { type: "function", function: { name: "analyzePrompt" } }
-      });
+      }
+
+      const response = await this.client.chat.completions.create(req);
+      
+      if(this.logRequest){
+        console.log("\n\n---- OpenAI Classifier ----");
+        console.log(JSON.stringify(req));
+        console.log(JSON.stringify(response));
+        console.log("\n\n");
+      }
+
+      const modelStats = [];
+      const obj = {};
+      obj["id"] = response.id;
+      obj["model"] = response.model;
+      obj["usage"] = response.usage;
+      obj["from"] = "openai_classifier";
+      modelStats.push(obj);
+      Logger.logger.info(`OpenAI Classifier Usage: `, JSON.stringify(obj));
 
       const toolCall = response.choices[0]?.message?.tool_calls?.[0];
 
@@ -137,12 +160,12 @@ export class OpenAIClassifier extends Classifier {
       const intentClassifierResult: ClassifierResult = {
         selectedAgent: this.getAgentById(toolInput.selected_agent),
         confidence: parseFloat(toolInput.confidence),
-        modelStats: [{"t":"o"}]
+        modelStats: modelStats
       };
       return intentClassifierResult;
 
     } catch (error) {
-      Logger.logger.error("Error processing request:", error);
+      Logger.logger.error("OpenAI Classfier Error processing request:", error);
       throw error;
     }
   }

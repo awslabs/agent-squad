@@ -121,7 +121,7 @@ async processRequest(
         
   
         if(this.logRequest){
-          console.log("\n\n---- Classifier ----");
+          console.log("\n\n---- Anthropic Classifier ----");
           console.log(JSON.stringify(req));
           console.log(JSON.stringify(response));
           console.log("\n\n");
@@ -157,15 +157,15 @@ async processRequest(
         return intentClassifierResult;
   
       } catch (error) {
-        Logger.logger.error("Classifier Error: Error classifying request:", error);
+        Logger.logger.error("Anthropic Classifier Error: Error classifying request:", error);
 
         if(error.error.type === "overloaded_error"){
           if(executionCount < 3){
             retry = true;
             await delay(executionCount*500);
-            Logger.logger.info(`Classifier Error: Overload Error: retry: ${executionCount}  delay ${executionCount*500}ms `);
+            Logger.logger.info(`Anthropic Classifier Error: Overload Error: retry: ${executionCount}  delay ${executionCount*500}ms `);
           }else{
-            Logger.logger.info(`Classifier Error: Exceeded retry count for overload error`);
+            Logger.logger.info(`Anthropic Classifier Error: Exceeded retry count for overload error`);
             throw error;
           }
         }else{
@@ -175,7 +175,7 @@ async processRequest(
         
       }
     }
-    throw error("Classifier Error: Please try again.");
+    throw error("Anthropic Classifier Error: Please try again.");
   }
 
 
