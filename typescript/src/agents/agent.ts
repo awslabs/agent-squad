@@ -54,6 +54,9 @@ export interface AgentOptions {
   // Optional: Flag to enable/disable agent debug trace logging
   // If true, the agent will log additional debug information
   LOG_AGENT_DEBUG_TRACE?: boolean;
+
+  //description s3 file details. Expected format is bucket##fileid
+  s3details?: string;
 }
 
 /**
@@ -81,6 +84,9 @@ export abstract class Agent {
   // If true, the agent will log additional debug information
   LOG_AGENT_DEBUG_TRACE?: boolean;
 
+  //description s3 file details. Expected format is bucket##fileid
+  s3details: string;
+
   /**
    * Constructs a new Agent instance.
    * @param options - Configuration options for the agent.
@@ -90,6 +96,7 @@ export abstract class Agent {
     this.id = this.generateKeyFromName(options.name);
     this.description = options.description;
     this.saveChat = options.saveChat ?? true;  // Default to true if not provided
+    this.s3details = options.s3details ?? "";
 
     this.LOG_AGENT_DEBUG_TRACE = options.LOG_AGENT_DEBUG_TRACE ?? false;
     this.logger = options.logger ?? (this.LOG_AGENT_DEBUG_TRACE ? console : { info: () => {}, warn: () => {}, error: () => {}, debug: () => {}, log: () => {} });
