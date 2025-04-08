@@ -165,6 +165,7 @@ export class OpenAIClassifier extends Classifier {
        * if that class also wants to store description in s3, set the variable.
        */
       if (
+        selectedAgent &&
         selectedAgent.s3details &&
         selectedAgent.s3details.indexOf("##") > 0
       ) {
