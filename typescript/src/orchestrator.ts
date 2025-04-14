@@ -311,6 +311,7 @@ export class MultiAgentOrchestrator {
         //     )
         // );
 
+        console.log("There 5");
         const response =  await selectedAgent.processRequest(
           userInput,
           userId,
@@ -321,6 +322,7 @@ export class MultiAgentOrchestrator {
 
         //if (this.isStream(response)) {
         if (this.isAsyncIterable(response)) {
+          console.log("async iterable");
           return response;
         }
 
@@ -343,6 +345,7 @@ export class MultiAgentOrchestrator {
           );
         }
 
+        console.log("There 6");
         return responseText;
       }
     } catch (error) {
@@ -359,10 +362,14 @@ export class MultiAgentOrchestrator {
   ): Promise<ClassifierResult> {
     try {
       // const chatHistory = await this.storage.fetchAllChats(userId, sessionId) || [];
-      const classifierResult = await this.measureExecutionTime(
-        "Classifying user intent",
-        () => this.classifier.classify(userInput, chatHistory)
-      );
+      // const classifierResult = await this.measureExecutionTime(
+      //   "Classifying user intent",
+      //   () => this.classifier.classify(userInput, chatHistory)
+      // );
+
+      this.logger.info("Classifying user intent");
+      const classifierResult = await this.classifier.classify(userInput, chatHistory);
+      
   
       this.logger.printIntent(userInput, classifierResult);
   
@@ -388,6 +395,7 @@ export class MultiAgentOrchestrator {
     chatHistory: ConversationMessage[]
   ): Promise<AgentResponse> {
     try {
+      console.log("There 2");
       const agentResponse = await this.dispatchToAgent({
         userInput,
         userId,
@@ -417,6 +425,7 @@ export class MultiAgentOrchestrator {
         };
       }
   
+      console.log("There 3");
       if (classifierResult?.selectedAgent.saveChat) {
         await saveConversationExchange(
           userInput,
@@ -428,6 +437,7 @@ export class MultiAgentOrchestrator {
           this.config.MAX_MESSAGE_PAIRS_PER_AGENT
         );
       }
+      console.log("There 4");
   
       return {
         metadata,
@@ -455,6 +465,7 @@ export class MultiAgentOrchestrator {
       const chatHistory = await this.storage.fetchAllChats(userId, sessionId) || [];
       this.logger.printChatHistory(chatHistory);
       const classifierResult = await this.classifyRequest(userInput, userId, sessionId, chatHistory);
+      console.log("There 1");
       modelStats =  classifierResult.modelStats;
       if (!classifierResult.selectedAgent) {
         return {
