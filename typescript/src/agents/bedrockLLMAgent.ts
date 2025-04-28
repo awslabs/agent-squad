@@ -462,7 +462,6 @@ export class BedrockLLMAgent extends Agent {
       allVariables
     );
 
-    //console.log("*** systemPrompt="+this.systemPrompt)
   }
 
   private replaceplaceholders(
