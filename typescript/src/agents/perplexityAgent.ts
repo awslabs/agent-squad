@@ -165,7 +165,6 @@ export class PerplexityAgent extends Agent {
           console.log("\n\n");
         }
         perplexityResp = retVal?.data;
-        // console.log("Perplexity Resp: ", JSON.stringify(perplexityResp));
         if (!perplexityResp || perplexityResp.choices.length<1) {
             throw new Error('Perplexity Agent: Unexpected response format from Perplexity API');
         }
