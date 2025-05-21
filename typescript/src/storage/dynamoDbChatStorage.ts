@@ -104,23 +104,23 @@ export class DynamoDbChatStorage extends ChatStorage {
     try {
       let queryCommand;
       if(this.isAgentHistory){
-        queryCommand =  new QueryCommand({
+        queryCommand =  {
           TableName: this.tableName,
           KeyConditionExpression: "PK = :pk and begins_with(SK, :skPrefix)",
           ExpressionAttributeValues: {
             ":pk": userId,
             ":skPrefix": `${sessionId}#`,
           },
-        })
+        }
       }else{
-        queryCommand =  new QueryCommand({
+        queryCommand =  {
           TableName: this.tableName,
           KeyConditionExpression: "PK = :pk and SK = :sk",
           ExpressionAttributeValues: {
             ":pk": userId,
             ":sk": sessionId,
           },
-        })
+        }
       }
       const response = await this.docClient.send(new QueryCommand(queryCommand));
   
