@@ -102,14 +102,27 @@ export class DynamoDbChatStorage extends ChatStorage {
   
   async fetchAllChats(userId: string, sessionId: string): Promise<ConversationMessage[]> {
     try {
-      const response = await this.docClient.send(new QueryCommand({
-        TableName: this.tableName,
-        KeyConditionExpression: "PK = :pk and begins_with(SK, :skPrefix)",
-        ExpressionAttributeValues: {
-          ":pk": userId,
-          ":skPrefix": `${sessionId}#`,
-        },
-      }));
+      let queryCommand;
+      if(this.isAgentHistory){
+        queryCommand =  new QueryCommand({
+          TableName: this.tableName,
+          KeyConditionExpression: "PK = :pk and begins_with(SK, :skPrefix)",
+          ExpressionAttributeValues: {
+            ":pk": userId,
+            ":skPrefix": `${sessionId}#`,
+          },
+        })
+      }else{
+        queryCommand =  new QueryCommand({
+          TableName: this.tableName,
+          KeyConditionExpression: "PK = :pk and SK = :sk",
+          ExpressionAttributeValues: {
+            ":pk": userId,
+            ":sk": sessionId,
+          },
+        })
+      }
+      const response = await this.docClient.send(new QueryCommand(queryCommand));
   
       if (!response.Items || response.Items.length === 0) {
         return [];
