@@ -11,6 +11,7 @@ export { ChainAgent, ChainAgentOptions } from './agents/chainAgent';
 export {BedrockFlowsAgent, BedrockFlowsAgentOptions} from './agents/bedrockFlowsAgent';
 export { SupervisorAgent, SupervisorAgentOptions } from './agents/supervisorAgent';
 export { PerplexityAgent, PerplexityAgentOptions } from './agents/perplexityAgent';
+export { GrokAgent, GrokAgentOptions } from './agents/grokAgent';
 export { AgentResponse } from './agents/agent';
 
 export { BedrockClassifier, BedrockClassifierOptions } from './classifiers/bedrockClassifier';
