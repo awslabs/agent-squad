@@ -136,11 +136,12 @@ export class DynamoDbChatStorage extends ChatStorage {
   
         // Extract agentId from the SK
         const agentId = item.SK.split('#')[1];
+        const agentName = agentId ? `[${agentId}] `: "";
   
         return item.conversation.map(msg => ({
           role: msg.role,
           content: msg.role === ParticipantRole.ASSISTANT
-            ? [{ text: `[${agentId}] ${Array.isArray(msg.content) ? msg.content[0]?.text || '' : msg.content || ''}` }]
+            ? [{ text: `${agentName}${Array.isArray(msg.content) ? msg.content[0]?.text || '' : msg.content || ''}` }]
             : (Array.isArray(msg.content) ? msg.content.map(content => ({ text: content.text })) : [{ text: msg.content || '' }]),
           timestamp: Number(msg.timestamp)
         } as TimestampedMessage));
