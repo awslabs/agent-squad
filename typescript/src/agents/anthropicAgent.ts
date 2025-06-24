@@ -72,7 +72,7 @@ export class AnthropicAgent extends Agent {
 
   public toolConfig?: {
     tool: AgentTools | Anthropic.Tool[];
-    useToolHandler?: (response: any, conversation: any[]) => any;
+    useToolHandler?: (response: any, conversation: any[], additionalParams?: Record<string, string>) => any;
     toolMaxRecursions?: number;
   };
 
@@ -309,7 +309,7 @@ export class AnthropicAgent extends Agent {
             const tools = this.toolConfig.tool;
             const toolHandler =
               this.toolConfig.useToolHandler ??
-              (async (response, conversationHistory) => {
+              (async (response, conversationHistory, additionalParams?: Record<string, string>) => {
                 if (this.isAgentTools(tools)) {
                   return tools.toolHandler(
                     response,
@@ -322,11 +322,12 @@ export class AnthropicAgent extends Agent {
                 // Only use legacy handler when it's not AgentTools
                 return this.toolConfig.useToolHandler(
                   response,
-                  conversationHistory
+                  conversationHistory,
+                  additionalParams
                 );
               });
 
-            const toolResponse = await toolHandler(response, messages);
+            const toolResponse = await toolHandler(response, messages, _additionalParams);
             const formattedResponse = this.formatToolResults(toolResponse);
 
             // Add the formatted response to messages
