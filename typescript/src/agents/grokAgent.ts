@@ -1,5 +1,5 @@
 import { Agent, AgentOptions } from './agent';
-import { ConversationMessage, ParticipantRole, TemplateVariables } from '../types';
+import { ChatHistory, ConversationMessage, ParticipantRole, TemplateVariables } from '../types';
 import OpenAI from 'openai';
 import { Logger } from '../utils/logger';
 import { Retriever } from "../retrievers/retriever";
@@ -117,7 +117,7 @@ export class GrokAgent extends Agent {
     inputText: string,
     userId: string,
     sessionId: string,
-    chatHistory: ConversationMessage[],
+    chatHistory: ChatHistory,
     additionalParams?: Record<string, string>
   ): Promise<ConversationMessage | AsyncIterable<any>> {
 
@@ -134,10 +134,15 @@ export class GrokAgent extends Agent {
         systemPrompt = systemPrompt + contextPrompt;
     }
 
+    if(chatHistory.summary){
+      const summaryPrompt = `\nHere is a summary of the old conversation that you should account for before answering:\n ${chatHistory.summary}`;
+      systemPrompt = systemPrompt+summaryPrompt
+    }
+
 
     const messages = [
       { role: 'system', content: systemPrompt },
-      ...chatHistory.map(msg => ({
+      ...chatHistory.messages.map(msg => ({
         role: msg.role.toLowerCase() as OpenAI.Chat.ChatCompletionMessageParam['role'],
         content: msg.content[0]?.text || ''
       })),

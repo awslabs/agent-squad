@@ -1,5 +1,5 @@
 import { Client, createClient } from '@libsql/client/web';
-import { ConversationMessage, ParticipantRole } from "../types";
+import { ChatHistory, ConversationMessage, ParticipantRole } from "../types";
 import { Logger } from "../utils/logger";
 import { ChatStorage } from "./chatStorage";
 
@@ -166,7 +166,7 @@ export class SqlChatStorage extends ChatStorage {
   async fetchAllChats(
     userId: string,
     sessionId: string
-  ): Promise<ConversationMessage[]> {
+  ): Promise<ChatHistory> {
     try {
       const result = await this.client.execute({
         sql: /*sql*/`
@@ -180,12 +180,13 @@ export class SqlChatStorage extends ChatStorage {
 
       const messages = result.rows;
 
-      return messages.map(msg => ({
+      const m =  messages.map(msg => ({
         role: msg.role as ParticipantRole,
         content: msg.role === ParticipantRole.ASSISTANT
           ? [{ text: `[${msg.agent_id}] ${JSON.parse(msg.content as string)[0]?.text || ''}` }]
           : JSON.parse(msg.content as string)
       }));
+      return {messages: m, summary: ""};
     } catch (error) {
       Logger.logger.error("Error fetching all chats:", error);
       throw error;

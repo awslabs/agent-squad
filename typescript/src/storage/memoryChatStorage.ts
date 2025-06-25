@@ -1,5 +1,5 @@
 import { ChatStorage } from "./chatStorage";
-import { ConversationMessage, ParticipantRole, TimestampedMessage } from "../types";
+import { ChatHistory, ConversationMessage, ParticipantRole, TimestampedMessage } from "../types";
 import { Logger } from "../utils/logger";
 
 export class InMemoryChatStorage extends ChatStorage {
@@ -50,7 +50,7 @@ export class InMemoryChatStorage extends ChatStorage {
   async fetchAllChats(
     userId: string,
     sessionId: string
-  ): Promise<ConversationMessage[]> {
+  ): Promise<ChatHistory>  {
     const allMessages: TimestampedMessage[] = [];
     for (const [key, messages] of this.conversations.entries()) {
       const [storedUserId, storedSessionId, agentId] = key.split('#');
@@ -66,7 +66,8 @@ export class InMemoryChatStorage extends ChatStorage {
     }
     // Sort messages by timestamp
     allMessages.sort((a, b) => a.timestamp - b.timestamp);
-    return this.removeTimestamps(allMessages);
+    const messages =  this.removeTimestamps(allMessages);
+    return {messages}
   }
 
   private generateKey(userId: string, sessionId: string, agentId: string): string {

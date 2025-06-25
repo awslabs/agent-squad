@@ -1,5 +1,5 @@
 import { Agent, AgentOptions } from "./agent";
-import { ConversationMessage, ParticipantRole, BEDROCK_MODEL_ID_CLAUDE_3_HAIKU } from "../types";
+import { ConversationMessage, ParticipantRole, BEDROCK_MODEL_ID_CLAUDE_3_HAIKU, ChatHistory } from "../types";
 import { BedrockRuntimeClient, ConverseCommand, ContentBlock } from "@aws-sdk/client-bedrock-runtime";
 import { Logger } from "../utils/logger";
 
@@ -84,7 +84,7 @@ export class BedrockTranslatorAgent extends Agent {
     inputText: string,
     userId: string,
     sessionId: string,
-    chatHistory: ConversationMessage[],
+    chatHistory: ChatHistory,
     additionalParams?: Record<string, string>
   ): Promise<ConversationMessage> {
     // Check if input is a number

@@ -44,6 +44,12 @@ export interface ConversationMessage {
   content: any[] | undefined;
   modelStats?: any[];
   citations?: any[];
+  summary?: string;
+}
+
+export interface ChatHistory {
+  messages: ConversationMessage[];
+  summary?: string 
 }
 
 /**

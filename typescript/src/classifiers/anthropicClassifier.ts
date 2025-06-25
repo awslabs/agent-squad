@@ -1,7 +1,7 @@
 import { error } from "console";
 import {
   ANTHROPIC_MODEL_ID_CLAUDE_3_5_SONNET,
-  ConversationMessage,
+  ChatHistory,
   ParticipantRole,
 } from "../types";
 import { isClassifierToolInput } from "../utils/helpers";
@@ -94,7 +94,7 @@ export class AnthropicClassifier extends Classifier {
   /* eslint-disable @typescript-eslint/no-unused-vars */
   async processRequest(
     inputText: string,
-    chatHistory: ConversationMessage[]
+    chatHistory: ChatHistory
   ): Promise<ClassifierResult> {
     const userMessage: Anthropic.MessageParam = {
       role: ParticipantRole.USER,

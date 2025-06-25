@@ -1,6 +1,6 @@
 {
   "name": "@swatechnology/swa-multi-agent-orchestrator",
-  "version": "0.0.35",
+  "version": "0.0.40",
   "description": "Multi-Agent Orchestrator framework for SwaTech",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -30,12 +30,14 @@
     "@aws-sdk/lib-dynamodb": "^3.621.0",
     "@aws-sdk/util-dynamodb": "^3.621.0",
     "@libsql/client": "^0.14.0",
+    "@qdrant/js-client-rest": "^1.14.1",
     "axios": "^1.7.2",
     "eslint-config-prettier": "^9.1.0",
     "natural": "^7.0.7",
     "openai": "^4.52.7",
     "prettier": "^3.3.3",
-    "stopword": "^3.0.1"
+    "stopword": "^3.0.1",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",

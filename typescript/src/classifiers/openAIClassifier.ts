@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { ConversationMessage, OPENAI_MODEL_ID_GPT_O_MINI } from "../types";
+import { ChatHistory, OPENAI_MODEL_ID_GPT_O_MINI } from "../types";
 import { isClassifierToolInput } from "../utils/helpers";
 import { Logger } from "../utils/logger";
 import { Classifier, ClassifierResult } from "./classifier";
@@ -100,7 +100,7 @@ export class OpenAIClassifier extends Classifier {
   /* eslint-disable @typescript-eslint/no-unused-vars */
   async processRequest(
     inputText: string,
-    chatHistory: ConversationMessage[]
+    chatHistory: ChatHistory
   ): Promise<ClassifierResult> {
     const messages: OpenAI.ChatCompletionMessageParam[] = [
       {

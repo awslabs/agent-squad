@@ -1,6 +1,7 @@
 import { Agent, AgentOptions } from "./agent";
 import {
   ANTHROPIC_MODEL_ID_CLAUDE_3_5_SONNET,
+  ChatHistory,
   ConversationMessage,
   ParticipantRole,
   TemplateVariables,
@@ -240,11 +241,11 @@ export class AnthropicAgent extends Agent {
     inputText: string,
     userId: string,
     sessionId: string,
-    chatHistory: ConversationMessage[],
+    chatHistory: ChatHistory,
     _additionalParams?: Record<string, string>
   ): Promise<ConversationMessage | AsyncIterable<any>> {
     // Format messages to Anthropic's format
-    const messages: Anthropic.MessageParam[] = chatHistory.map((message) => ({
+    const messages: Anthropic.MessageParam[] = chatHistory.messages.map((message) => ({
       role:
         message.role === ParticipantRole.USER
           ? ParticipantRole.USER
@@ -267,6 +268,11 @@ export class AnthropicAgent extends Agent {
         "\nHere is the context to use to answer the user's question:\n" +
         response;
       systemPrompt = systemPrompt + contextPrompt;
+    }
+
+    if(chatHistory.summary){
+      const summaryPrompt = `\nHere is a summary of the old conversation that you should account for before answering:\n ${chatHistory.summary}`;
+      systemPrompt = systemPrompt+summaryPrompt
     }
 
     try {

@@ -7,6 +7,7 @@ import {
 import { Agent, AgentOptions } from "./agent";
 import {
   BEDROCK_MODEL_ID_CLAUDE_3_HAIKU,
+  ChatHistory,
   ConversationMessage,
   ParticipantRole,
   TemplateVariables,
@@ -251,7 +252,7 @@ export class BedrockLLMAgent extends Agent {
     inputText: string,
     userId: string,
     sessionId: string,
-    chatHistory: ConversationMessage[],
+    chatHistory: ChatHistory,
     additionalParams?: Record<string, string>
   ): Promise<ConversationMessage | AsyncIterable<any>> {
     try {
@@ -262,7 +263,7 @@ export class BedrockLLMAgent extends Agent {
       };
 
       // Combine the existing chat history with the user's message
-      const conversation: ConversationMessage[] = [...chatHistory, userMessage];
+      const conversation: ConversationMessage[] = [...chatHistory.messages, userMessage];
 
       this.updateSystemPrompt();
 

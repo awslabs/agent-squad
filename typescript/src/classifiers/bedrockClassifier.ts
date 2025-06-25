@@ -1,5 +1,6 @@
 import {
   BEDROCK_MODEL_ID_CLAUDE_3_5_SONNET,
+  ChatHistory,
   ConversationMessage,
   ParticipantRole,
 } from "../types";
@@ -118,7 +119,7 @@ export class BedrockClassifier extends Classifier{
   /* eslint-disable @typescript-eslint/no-unused-vars */
   async processRequest(
     inputText: string,
-    chatHistory: ConversationMessage[]
+    chatHistory: ChatHistory
   ): Promise<ClassifierResult> {
     // Construct the user's message based on the provided inputText
     const userMessage: ConversationMessage = {
