@@ -1,6 +1,6 @@
 {
   "name": "@swatechnology/swa-multi-agent-orchestrator",
-  "version": "0.0.35",
+  "version": "0.0.40",
   "description": "Multi-Agent Orchestrator framework for SwaTech",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -36,7 +36,8 @@
     "natural": "^7.0.7",
     "openai": "^4.52.7",
     "prettier": "^3.3.3",
-    "stopword": "^3.0.1"
+    "stopword": "^3.0.1",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",

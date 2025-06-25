@@ -6,7 +6,7 @@ import {
 } from "@aws-sdk/lib-dynamodb";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { ChatStorage } from "./chatStorage";
-import { ConversationMessage, ParticipantRole, TimestampedMessage } from "../types";
+import { ConversationMessage, ParticipantRole, TimestampedMessage, ChatHistory } from "../types";
 import { Logger } from "../utils/logger";
 
 
@@ -100,7 +100,7 @@ export class DynamoDbChatStorage extends ChatStorage {
   }
 
   
-  async fetchAllChats(userId: string, sessionId: string): Promise<ConversationMessage[]> {
+  async fetchAllChats(userId: string, sessionId: string): Promise<ChatHistory> {
     try {
       let queryCommand;
       if(this.isAgentHistory){
@@ -125,7 +125,7 @@ export class DynamoDbChatStorage extends ChatStorage {
       const response = await this.docClient.send(new QueryCommand(queryCommand));
   
       if (!response.Items || response.Items.length === 0) {
-        return [];
+        return {messages: []};
       }
   
       const allChats = response.Items.flatMap(item => {
@@ -148,7 +148,8 @@ export class DynamoDbChatStorage extends ChatStorage {
       });
   
       allChats.sort((a, b) => a.timestamp - b.timestamp);
-      return this.removeTimestamps(allChats);
+      const messages =  this.removeTimestamps(allChats);
+      return { messages };
     } catch (error) {
       Logger.logger.error("Error querying conversations from DynamoDB:", error);
       throw error;

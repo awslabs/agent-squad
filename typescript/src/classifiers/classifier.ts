@@ -1,4 +1,5 @@
 import {
+  ChatHistory,
   ConversationMessage,
   TemplateVariables,
 } from "../types";
@@ -33,6 +34,7 @@ export abstract class Classifier {
   protected systemPrompt: string;
   protected customVariables: TemplateVariables;
   protected logRequest?: boolean;
+  protected summary?: string;
 
 
 
@@ -44,6 +46,7 @@ export abstract class Classifier {
 
     this.agentDescriptions = "";
     this.history = "";
+    this.summary = "";
     this.customVariables = {};
     this.promptTemplate = `
 You are AgentMatcher, an intelligent assistant designed to analyze user queries and match them with the most suitable agent or department. Your task is to understand the user's request, identify key entities and intents, and determine which agent or department would be best equipped to handle the query.
@@ -74,7 +77,13 @@ Guidelines for classification:
 
 Handle variations in user input, including different phrasings, synonyms, and potential spelling errors. For short responses like "yes", "ok", "I want to know more", or numerical answers, treat them as follow-ups and maintain the previous agent selection.
 
-Here is the conversation history that you need to take into account before answering:
+Here is a summary of the earlier conversation between that you need to be aware off
+<summary>
+{{SUMMARY}}
+</summary>
+
+
+Here is the recent conversation history that you need to take into account before answering:
 <history>
 {{HISTORY}}
 </history>
@@ -176,10 +185,11 @@ Skip any preamble and provide only the response in the specified format.
    */
     async classify(
       inputText: string,
-      chatHistory: ConversationMessage[]
+      chatHistory: ChatHistory
     ): Promise<ClassifierResult> {
       // Set the chat history
-      this.setHistory(chatHistory);
+      this.setHistory(chatHistory.messages);
+      this.summary = chatHistory.summary;
       // Update the system prompt with the latest history, agent descriptions, and custom variables
       this.updateSystemPrompt();
       return await this.processRequest(inputText, chatHistory);
@@ -195,7 +205,7 @@ Skip any preamble and provide only the response in the specified format.
      */
     abstract processRequest(
       inputText: string,
-      chatHistory: ConversationMessage[]
+      chatHistory: ChatHistory
     ): Promise<ClassifierResult>;
 
 
@@ -204,6 +214,7 @@ Skip any preamble and provide only the response in the specified format.
       ...this.customVariables,
       AGENT_DESCRIPTIONS: this.agentDescriptions,
       HISTORY: this.history,
+      SUMMARY: this.summary
     };
 
     this.systemPrompt = this.replaceplaceholders(

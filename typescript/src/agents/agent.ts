@@ -1,4 +1,4 @@
-import { ConversationMessage } from "../types";
+import { ChatHistory, ConversationMessage } from "../types";
 import { AccumulatorTransform } from "../utils/helpers";
 
 
@@ -152,7 +152,7 @@ abstract processRequest(
   inputText: string,
   userId: string,
   sessionId: string,
-  chatHistory: ConversationMessage[],
+  chatHistory: ChatHistory,
   additionalParams?: Record<string, string>,
 ): Promise<ConversationMessage | AsyncIterable<any>>;
 

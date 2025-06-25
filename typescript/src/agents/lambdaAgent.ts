@@ -1,4 +1,4 @@
-import {  ConversationMessage, ParticipantRole } from "../types";
+import {  ChatHistory, ConversationMessage, ParticipantRole } from "../types";
 import { Agent, AgentOptions } from "./agent";
 import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
 
@@ -42,11 +42,11 @@ export class LambdaAgent extends Agent {
         inputText: string,
         userId: string,
         sessionId: string,
-        chatHistory: ConversationMessage[],
+        chatHistory: ChatHistory,
         additionalParams?: Record<string, string>
       ): Promise<ConversationMessage>{
 
-        const payload = this.options.inputPayloadEncoder ? this.options.inputPayloadEncoder(inputText, chatHistory, userId, sessionId, additionalParams) : this.defaultInputPayloadEncoder(inputText, chatHistory, userId, sessionId, additionalParams);
+        const payload = this.options.inputPayloadEncoder ? this.options.inputPayloadEncoder(inputText, chatHistory, userId, sessionId, additionalParams) : this.defaultInputPayloadEncoder(inputText, chatHistory.messages, userId, sessionId, additionalParams);
         const invokeParams = {
             FunctionName: this.options.functionName,
             Payload: payload,

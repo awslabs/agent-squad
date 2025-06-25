@@ -1,5 +1,5 @@
 import { BedrockAgentRuntimeClient, InvokeAgentCommand, InvokeAgentCommandOutput } from "@aws-sdk/client-bedrock-agent-runtime";
-import { ConversationMessage, ParticipantRole } from "../types";
+import { ChatHistory, ConversationMessage, ParticipantRole } from "../types";
 import { Agent, AgentOptions } from "./agent";
 import { Logger } from "../utils/logger";
 
@@ -72,7 +72,7 @@ export class AmazonBedrockAgent extends Agent {
     inputText: string,
     userId: string,
     sessionId: string,
-    chatHistory: ConversationMessage[],
+    chatHistory: ChatHistory,
     additionalParams?: Record<any, any>
   ): Promise<ConversationMessage | AsyncIterable<any>> {
     // Construct the command to invoke the Amazon Bedrock agent with user input

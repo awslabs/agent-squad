@@ -1,6 +1,7 @@
 import { BedrockAgentRuntimeClient, InvokeFlowCommand } from "@aws-sdk/client-bedrock-agent-runtime";
 import { Agent, AgentOptions } from "./agent";
 import {
+  ChatHistory,
   ConversationMessage,
   ParticipantRole
 } from "../types";
@@ -65,7 +66,7 @@ import {
       inputText: string,
       userId: string,
       sessionId: string,
-      chatHistory: ConversationMessage[],
+      chatHistory: ChatHistory,
       additionalParams?: Record<string, string>
     ): Promise<ConversationMessage> {
 

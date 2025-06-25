@@ -1,7 +1,7 @@
 import { Agent, AgentOptions } from "./agent";
 import { BedrockLLMAgent } from "./bedrockLLMAgent";
 import { AnthropicAgent } from "./anthropicAgent";
-import { ConversationMessage, ParticipantRole } from "../types";
+import { ChatHistory, ConversationMessage, ParticipantRole } from "../types";
 import { Logger } from "../utils/logger";
 import { AgentTool, AgentTools } from "../utils/tool";
 import { InMemoryChatStorage } from "../storage/memoryChatStorage";
@@ -197,11 +197,14 @@ When communicating with other agents, including the User, please follow these gu
         ? await this.storage.fetchChat(userId, sessionId, agent.id)
         : [];
 
+      const chatHistory : ChatHistory = {messages: [], summary: ""};
+      chatHistory.messages = agentChatHistory;
+
       const response = await agent.processRequest(
         content,
         userId,
         sessionId,
-        agentChatHistory,
+        chatHistory,
         additionalParams
       );
 
@@ -313,7 +316,7 @@ When communicating with other agents, including the User, please follow these gu
     inputText: string,
     userId: string,
     sessionId: string,
-    chatHistory: ConversationMessage[],
+    chatHistory: ChatHistory,
     additionalParams?: Record<string, string>
   ): Promise<ConversationMessage | AsyncIterable<any>> {
     try {
@@ -321,7 +324,7 @@ When communicating with other agents, including the User, please follow these gu
       this.sessionId = sessionId;
 
       const agentsHistory = await this.storage.fetchAllChats(userId, sessionId);
-      const agentsMemory = this.formatAgentsMemory(agentsHistory);
+      const agentsMemory = this.formatAgentsMemory(agentsHistory.messages);
 
       this.leadAgent.setSystemPrompt(
         this.promptTemplate.replace("{{AGENTS_MEMORY}}", agentsMemory)

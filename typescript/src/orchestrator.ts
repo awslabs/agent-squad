@@ -8,7 +8,7 @@ import { saveConversationExchange } from "./utils/chatUtils";
 import { Logger } from "./utils/logger";
 import { BedrockClassifier } from "./classifiers/bedrockClassifier";
 import { Classifier } from "./classifiers/classifier";
-import { ConversationMessage } from "./types";
+import { ConversationMessage, ChatHistory } from "./types";
 
 export interface OrchestratorConfig {
   /** If true, logs the chat interactions with the agent */
@@ -140,7 +140,7 @@ export interface DispatchToAgentsParams {
   // Can store any key-value pairs of varying types
   additionalParams?: Record<string, any>;
 
-  chatHistory?: ConversationMessage[]
+  chatHistory?: ChatHistory
 }
 
 /**
@@ -355,7 +355,7 @@ export class MultiAgentOrchestrator {
     userInput: string,
     userId: string,
     sessionId: string, 
-    chatHistory: ConversationMessage[]
+    chatHistory: ChatHistory
   ): Promise<ClassifierResult> {
     try {
       // const chatHistory = await this.storage.fetchAllChats(userId, sessionId) || [];
@@ -389,7 +389,7 @@ export class MultiAgentOrchestrator {
     sessionId: string,
     classifierResult: ClassifierResult,
     additionalParams: Record<any, any> = {},
-    chatHistory: ConversationMessage[]
+    chatHistory: ChatHistory
   ): Promise<AgentResponse> {
     try {
       const agentResponse = await this.dispatchToAgent({
@@ -456,8 +456,9 @@ export class MultiAgentOrchestrator {
   
     let modelStats = [];
     try {
-      const chatHistory = await this.storage.fetchAllChats(userId, sessionId) || [];
-      this.logger.printChatHistory(chatHistory);
+      const chatHistory = await this.storage.fetchAllChats(userId, sessionId, userInput) ||  { messages : []} ;
+      this.logger.printChatHistory(chatHistory.messages);
+      this.logger.info(`Chat Summary: ${chatHistory.summary}`);
       const classifierResult = await this.classifyRequest(userInput, userId, sessionId, chatHistory);
       modelStats =  classifierResult.modelStats;
       if (!classifierResult.selectedAgent) {

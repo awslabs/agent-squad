@@ -1,7 +1,7 @@
 import {Agent, AgentOptions} from "./agent";
 import { Logger } from '../utils/logger';
 import { Retriever } from "../retrievers/retriever";
-import {ConversationMessage,TemplateVariables, ParticipantRole, PERPLEXITY_MODEL_ID_SONAR_PRO} from "../types"
+import {ConversationMessage,TemplateVariables, ParticipantRole, PERPLEXITY_MODEL_ID_SONAR_PRO, ChatHistory} from "../types"
 import axios, { AxiosRequestConfig } from 'axios';
 
 const DEFAULT_MAX_TOKENS = 4096;
@@ -119,7 +119,7 @@ export class PerplexityAgent extends Agent {
         inputText: string,
         userId: string,
         sessionId: string,
-        chatHistory: ConversationMessage[]
+        chatHistory: ChatHistory
       ): Promise<ConversationMessage | AsyncIterable<any>> {
 
 
@@ -136,9 +136,14 @@ export class PerplexityAgent extends Agent {
         systemPrompt = systemPrompt + contextPrompt;
     }
 
+    if(chatHistory.summary){
+      const summaryPrompt = `\nHere is a summary of the old conversation that you should account for before answering:\n ${chatHistory.summary}`;
+      systemPrompt = systemPrompt+summaryPrompt
+    }
+
     const messages = [
         { role: 'system', content: systemPrompt },
-        ...chatHistory.map(msg => ({
+        ...chatHistory.messages.map(msg => ({
           role: msg.role.toLowerCase(),
           content: msg.content[0]?.text || ''
         })),

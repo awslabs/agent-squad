@@ -1,5 +1,5 @@
 import { Agent, AgentOptions } from "./agent";
-import { ConversationMessage, ParticipantRole } from "../types";
+import { ChatHistory, ConversationMessage, ParticipantRole } from "../types";
 import { Logger } from "../utils/logger";
 
 export interface ChainAgentOptions extends AgentOptions {
@@ -35,7 +35,7 @@ export class ChainAgent extends Agent {
     inputText: string,
     userId: string,
     sessionId: string,
-    chatHistory: ConversationMessage[],
+    chatHistory: ChatHistory,
     additionalParams?: Record<string, string>
   ): Promise<ConversationMessage | AsyncIterable<any>> {
 
