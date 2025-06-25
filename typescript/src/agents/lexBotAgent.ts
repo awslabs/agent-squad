@@ -1,5 +1,5 @@
 import { Agent, AgentOptions } from "./agent";
-import { ConversationMessage, ParticipantRole } from "../types";
+import { ChatHistory, ConversationMessage, ParticipantRole } from "../types";
 import {
   LexRuntimeV2Client,
   RecognizeTextCommand,
@@ -59,7 +59,7 @@ export class LexBotAgent extends Agent {
     inputText: string,
     userId: string,
     sessionId: string,
-    chatHistory: ConversationMessage[],
+    chatHistory: ChatHistory,
     additionalParams?: Record<string, string>
   ): Promise<ConversationMessage> {
     try {

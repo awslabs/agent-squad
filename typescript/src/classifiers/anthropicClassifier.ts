@@ -1,13 +1,14 @@
 import { error } from "console";
 import {
   ANTHROPIC_MODEL_ID_CLAUDE_3_5_SONNET,
-  ConversationMessage,
+  ChatHistory,
   ParticipantRole,
 } from "../types";
 import { isClassifierToolInput } from "../utils/helpers";
 import { Logger } from "../utils/logger";
 import { Classifier, ClassifierResult } from "./classifier";
 import { Anthropic } from "@anthropic-ai/sdk";
+import { fetchDescription } from "../utils/s3Utils";
 
 export interface AnthropicClassifierOptions {
   // Optional: The ID of the Anthropic model to use for classification
@@ -48,29 +49,28 @@ export class AnthropicClassifier extends Classifier {
 
   private tools: Anthropic.Tool[] = [
     {
-      name: 'analyzePrompt',
-      description: 'Analyze the user input and provide structured output',
+      name: "analyzePrompt",
+      description: "Analyze the user input and provide structured output",
       input_schema: {
-        type: 'object',
+        type: "object",
         properties: {
           userinput: {
-            type: 'string',
-            description: 'The original user input',
+            type: "string",
+            description: "The original user input",
           },
           selected_agent: {
-            type: 'string',
-            description: 'The name of the selected agent',
+            type: "string",
+            description: "The name of the selected agent",
           },
           confidence: {
-            type: 'number',
-            description: 'Confidence level between 0 and 1',
+            type: "number",
+            description: "Confidence level between 0 and 1",
           },
         },
-        required: ['userinput', 'selected_agent', 'confidence'],
+        required: ["userinput", "selected_agent", "confidence"],
       },
     },
   ];
-
 
   constructor(options: AnthropicClassifierOptions) {
     super();
@@ -89,24 +89,23 @@ export class AnthropicClassifier extends Classifier {
       topP: options.inferenceConfig?.topP,
       stopSequences: options.inferenceConfig?.stopSequences,
     };
+  }
 
-}
-
-/* eslint-disable @typescript-eslint/no-unused-vars */
-async processRequest(
+  /* eslint-disable @typescript-eslint/no-unused-vars */
+  async processRequest(
     inputText: string,
-    chatHistory: ConversationMessage[]
+    chatHistory: ChatHistory
   ): Promise<ClassifierResult> {
     const userMessage: Anthropic.MessageParam = {
       role: ParticipantRole.USER,
       content: inputText,
     };
- 
+
     let retry = true;
     let executionCount = 0;
-    while(retry){
+    while (retry) {
       retry = false;
-      executionCount = executionCount+1;
+      executionCount = executionCount + 1;
       try {
         const req = {
           model: this.modelId,
@@ -115,18 +114,17 @@ async processRequest(
           system: this.systemPrompt,
           temperature: this.inferenceConfig.temperature,
           top_p: this.inferenceConfig.topP,
-          tools: this.tools
+          tools: this.tools,
         };
         const response = await this.client.messages.create(req);
-        
-  
-        if(this.logRequest){
-          console.log("\n\n---- Classifier ----");
+
+        if (this.logRequest) {
+          console.log("\n\n---- Anthropic Classifier ----");
           console.log(JSON.stringify(req));
           console.log(JSON.stringify(response));
           console.log("\n\n");
         }
-  
+
         const modelStats = [];
         const obj = {};
         obj["id"] = response.id;
@@ -134,54 +132,86 @@ async processRequest(
         obj["usage"] = response.usage;
         obj["from"] = "anthropic_classifier";
         modelStats.push(obj);
+        Logger.logger.info(`Anthropic Classifier Usage: `, JSON.stringify(obj));
         const toolUse = response.content.find(
-          (content): content is Anthropic.ToolUseBlock => content.type === "tool_use"
+          (content): content is Anthropic.ToolUseBlock =>
+            content.type === "tool_use"
         );
-  
+
         if (!toolUse) {
-          throw new Error("No tool use found in the response");
+          throw new Error(
+            "Classifier Error: No tool use found in the response"
+          );
         }
-  
+
         if (!isClassifierToolInput(toolUse.input)) {
-          throw new Error("Tool input does not match expected structure");
+          throw new Error(
+            "Classifier Error: Tool input does not match expected structure"
+          );
         }
-  
-  
+
+        //update agent description from s3 by replacing the current description which is summary.
+        const selectedAgent = this.getAgentById(toolUse.input.selected_agent);
+
+        //update description from s3 only if s3 details are provided.
+        /**
+         * Ideally all agents from db should have description in s3.
+         * But if we create a custom agent class itself, we can handle the description part in the custom class
+         * So in that case, there is no s3 details to fetch as custom prompt or very detailed description is in class itself
+         * if that class also wants to store description in s3, set the variable.
+         */
+        if (
+          selectedAgent &&
+          selectedAgent.s3details &&
+          selectedAgent.s3details.indexOf("##") > 0
+        ) {
+          Logger.logger.info(
+            `For selected agent fetching info from s3: ${selectedAgent.s3details}`
+          );
+          const s3details = selectedAgent.s3details;
+          const [S3Bucket, fileId] = s3details.split("##");
+          const description = await fetchDescription(S3Bucket, fileId);
+          selectedAgent.description = description;
+        }
+
         // Create and return IntentClassifierResult
         const intentClassifierResult: ClassifierResult = {
-          selectedAgent: this.getAgentById(toolUse.input.selected_agent),
+          selectedAgent: selectedAgent,
           confidence: parseFloat(toolUse.input.confidence),
-          modelStats: modelStats
+          modelStats: modelStats,
         };
         return intentClassifierResult;
-  
       } catch (error) {
-        Logger.logger.error("Error processing request:", error);
+        Logger.logger.error(
+          "Anthropic Classifier Error: Error classifying request:",
+          error
+        );
 
-        if(error.error.type === "overloaded_error"){
-          if(executionCount < 3){
+        if (error.error.type === "overloaded_error") {
+          if (executionCount < 3) {
             retry = true;
-            await delay(executionCount*500);
-            Logger.logger.info(`Retrying due to overload error: delay ${executionCount*500}ms `);
-          }else{
-            Logger.logger.info(`Exceeded retry count for overload error`);
+            await delay(executionCount * 500);
+            Logger.logger.info(
+              `Anthropic Classifier Error: Overload Error: retry: ${executionCount}  delay ${executionCount * 500}ms `
+            );
+          } else {
+            Logger.logger.info(
+              `Anthropic Classifier Error: Exceeded retry count for overload error`
+            );
             throw error;
           }
-        }else{
+        } else {
           // Instead of returning a default result, we'll throw the error
           throw error;
         }
-        
       }
     }
-    throw error("Please try again.");
+    throw error("Anthropic Classifier Error: Please try again.");
   }
-
-
 }
 
 function delay(t: number) {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     setTimeout(resolve, t);
   });
 }

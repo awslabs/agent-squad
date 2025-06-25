@@ -8,6 +8,7 @@ import {
   import {
     BEDROCK_MODEL_ID_CLAUDE_3_HAIKU,
     BEDROCK_MODEL_ID_CLAUDE_3_SONNET,
+    ChatHistory,
     ConversationMessage,
     ParticipantRole,
     TemplateVariables,
@@ -308,7 +309,7 @@ import {
       inputText: string,
       userId: string,
       sessionId: string,
-      chatHistory: ConversationMessage[],
+      chatHistory: ChatHistory,
       _additionalParams?: Record<string, string>
     ): Promise<ConversationMessage> {
       try {
@@ -319,7 +320,7 @@ import {
         };
 
         // Combine chat history with current message
-        const conversation: ConversationMessage[] = [...chatHistory, userMessage];
+        const conversation: ConversationMessage[] = [...chatHistory.messages, userMessage];
 
         this.updateSystemPrompt();
 

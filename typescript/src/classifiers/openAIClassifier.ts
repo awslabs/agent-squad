@@ -1,16 +1,17 @@
 import OpenAI from "openai";
-import {
-  ConversationMessage,
-  OPENAI_MODEL_ID_GPT_O_MINI
-} from "../types";
+import { ChatHistory, OPENAI_MODEL_ID_GPT_O_MINI } from "../types";
 import { isClassifierToolInput } from "../utils/helpers";
 import { Logger } from "../utils/logger";
 import { Classifier, ClassifierResult } from "./classifier";
+import { ChatCompletionCreateParamsNonStreaming } from "openai/resources";
+import {fetchDescription} from "../utils/s3Utils"
 
 export interface OpenAIClassifierOptions {
   // Optional: The ID of the OpenAI model to use for classification
   // If not provided, a default model may be used
   modelId?: string;
+
+  logRequest?: boolean;
 
   // Optional: Configuration for the inference process
   inferenceConfig?: {
@@ -44,25 +45,25 @@ export class OpenAIClassifier extends Classifier {
     {
       type: "function",
       function: {
-        name: 'analyzePrompt',
-        description: 'Analyze the user input and provide structured output',
+        name: "analyzePrompt",
+        description: "Analyze the user input and provide structured output",
         parameters: {
-          type: 'object',
+          type: "object",
           properties: {
             userinput: {
-              type: 'string',
-              description: 'The original user input',
+              type: "string",
+              description: "The original user input",
             },
             selected_agent: {
-              type: 'string',
-              description: 'The name of the selected agent',
+              type: "string",
+              description: "The name of the selected agent",
             },
             confidence: {
-              type: 'number',
-              description: 'Confidence level between 0 and 1',
+              type: "number",
+              description: "Confidence level between 0 and 1",
             },
           },
-          required: ['userinput', 'selected_agent', 'confidence'],
+          required: ["userinput", "selected_agent", "confidence"],
         },
       },
     },
@@ -75,6 +76,7 @@ export class OpenAIClassifier extends Classifier {
       throw new Error("OpenAI API key is required");
     }
     this.client = new OpenAI({ apiKey: options.apiKey });
+    this.logRequest = options.logRequest ?? false;
     this.modelId = options.modelId || OPENAI_MODEL_ID_GPT_O_MINI;
 
     const defaultMaxTokens = 4096;
@@ -98,29 +100,47 @@ export class OpenAIClassifier extends Classifier {
   /* eslint-disable @typescript-eslint/no-unused-vars */
   async processRequest(
     inputText: string,
-    chatHistory: ConversationMessage[]
+    chatHistory: ChatHistory
   ): Promise<ClassifierResult> {
     const messages: OpenAI.ChatCompletionMessageParam[] = [
       {
-        role: 'system',
-        content: this.systemPrompt
+        role: "system",
+        content: this.systemPrompt,
       },
       {
-        role: 'user',
-        content: inputText
-      }
+        role: "user",
+        content: inputText,
+      },
     ];
 
     try {
-      const response = await this.client.chat.completions.create({
+      const req: ChatCompletionCreateParamsNonStreaming = {
         model: this.modelId,
         messages: messages,
         max_tokens: this.inferenceConfig.maxTokens,
         temperature: this.inferenceConfig.temperature,
         top_p: this.inferenceConfig.topP,
         tools: this.tools,
-        tool_choice: { type: "function", function: { name: "analyzePrompt" } }
-      });
+        tool_choice: { type: "function", function: { name: "analyzePrompt" } },
+      };
+
+      const response = await this.client.chat.completions.create(req);
+
+      if (this.logRequest) {
+        console.log("\n\n---- OpenAI Classifier ----");
+        console.log(JSON.stringify(req));
+        console.log(JSON.stringify(response));
+        console.log("\n\n");
+      }
+
+      const modelStats = [];
+      const obj = {};
+      obj["id"] = response.id;
+      obj["model"] = response.model;
+      obj["usage"] = response.usage;
+      obj["from"] = "openai_classifier";
+      modelStats.push(obj);
+      Logger.logger.info(`OpenAI Classifier Usage: `, JSON.stringify(obj));
 
       const toolCall = response.choices[0]?.message?.tool_calls?.[0];
 
@@ -134,15 +154,41 @@ export class OpenAIClassifier extends Classifier {
         throw new Error("Tool input does not match expected structure");
       }
 
+      //update agent description from s3 by replacing the current description which is summary.
+      const selectedAgent = this.getAgentById(toolInput.selected_agent);
+
+      //update description from s3 only if s3 details are provided.
+      /**
+       * Ideally all agents from db should have description in s3.
+       * But if we create a custom agent class itself, we can handle the description part in the custom class
+       * So in that case, there is no s3 details to fetch as custom prompt or very detailed description is in class itself
+       * if that class also wants to store description in s3, set the variable.
+       */
+      if (
+        selectedAgent &&
+        selectedAgent.s3details &&
+        selectedAgent.s3details.indexOf("##") > 0
+      ) {
+        Logger.logger.info(
+          `For selected agent fetching info from s3: ${selectedAgent.s3details}`
+        );
+        const s3details = selectedAgent.s3details;
+        const [S3Bucket, fileId] = s3details.split("##");
+        const description = await fetchDescription(S3Bucket, fileId);
+        selectedAgent.description = description;
+        Logger.logger.info(
+          `For selected agent updated description from s3 : ${selectedAgent.description}`
+        );
+      }
+
       const intentClassifierResult: ClassifierResult = {
-        selectedAgent: this.getAgentById(toolInput.selected_agent),
+        selectedAgent: selectedAgent,
         confidence: parseFloat(toolInput.confidence),
-        modelStats: [{"t":"o"}]
+        modelStats: modelStats,
       };
       return intentClassifierResult;
-
     } catch (error) {
-      Logger.logger.error("Error processing request:", error);
+      Logger.logger.error("OpenAI Classfier Error processing request:", error);
       throw error;
     }
   }

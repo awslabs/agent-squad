@@ -1,5 +1,5 @@
 import { Agent, AgentOptions } from './agent';
-import { ChatHistory, ConversationMessage, OPENAI_MODEL_ID_GPT_O_MINI, ParticipantRole, TemplateVariables } from '../types';
+import { ChatHistory, ConversationMessage, ParticipantRole, TemplateVariables } from '../types';
 import OpenAI from 'openai';
 import { Logger } from '../utils/logger';
 import { Retriever } from "../retrievers/retriever";
@@ -14,7 +14,7 @@ type WithClient = {
   apiKey?: never;
 };
 
-export interface OpenAIAgentOptions extends AgentOptions {
+export interface GrokAgentOptions extends AgentOptions {
   model?: string;
   streaming?: boolean;
   logRequest?: boolean;
@@ -32,11 +32,11 @@ export interface OpenAIAgentOptions extends AgentOptions {
 
 }
 
-export type OpenAIAgentOptionsWithAuth = OpenAIAgentOptions & (WithApiKey | WithClient);
+export type GrokAgentOptionsWithAuth = GrokAgentOptions & (WithApiKey | WithClient);
 
 const DEFAULT_MAX_TOKENS = 4096;
 
-export class OpenAIAgent extends Agent {
+export class GrokAgent extends Agent {
   private client: OpenAI;
   private model: string;
   private streaming: boolean;
@@ -53,21 +53,24 @@ export class OpenAIAgent extends Agent {
   protected retriever?: Retriever;
 
 
-  constructor(options: OpenAIAgentOptionsWithAuth) {
+  constructor(options: GrokAgentOptionsWithAuth) {
 
     super(options);
 
     if (!options.apiKey && !options.client) {
-      throw new Error("OpenAI API key or OpenAI client is required");
+      throw new Error("Grok API key or Grok client is required");
     }
     if (options.client) {
       this.client = options.client;
     } else {
-      if (!options.apiKey) throw new Error("OpenAI API key is required");
-      this.client = new OpenAI({ apiKey: options.apiKey });
+      if (!options.apiKey) throw new Error("Grok API key is required");
+      this.client = new OpenAI({ 
+        apiKey: options.apiKey,
+        baseURL: "https://api.x.ai/v1"
+    });
     }
 
-    this.model = options.model ?? OPENAI_MODEL_ID_GPT_O_MINI;
+    this.model = options.model;
     this.streaming = options.streaming ?? false;
     this.logRequest =  options.logRequest ?? false;
     this.inferenceConfig = {
@@ -200,13 +203,13 @@ export class OpenAIAgent extends Agent {
       const chatCompletion = await this.client.chat.completions.create(nonStreamingOptions);
       
       if(this.logRequest){
-        console.log("\n\n---- OpenAI Agent ----");
+        console.log("\n\n---- GROK Agent ----");
         console.log(JSON.stringify(nonStreamingOptions));
         console.log(JSON.stringify(chatCompletion));
         console.log("\n\n");
       }
       if (!chatCompletion.choices || chatCompletion.choices.length === 0) {
-        throw new Error('OpenAI Agent: No choices returned from OpenAI API');
+        throw new Error('GROK Agent: No choices returned from GROK API');
       }
 
       const modelStats = [];
@@ -214,13 +217,13 @@ export class OpenAIAgent extends Agent {
       obj["id"] = chatCompletion.id;
       obj["model"] = chatCompletion.model;
       obj["usage"] = chatCompletion.usage;
-      obj["from"] = "agent-openai";
+      obj["from"] = "agent-grok";
       modelStats.push(obj);
-      Logger.logger.info(`Open AI Agent Usage: `, JSON.stringify(obj));
+      Logger.logger.info(`GROK Agent Usage: `, JSON.stringify(obj));
       const assistantMessage = chatCompletion.choices[0]?.message?.content;
 
       if (typeof assistantMessage !== 'string') {
-        throw new Error('OpenAI Agent: Unexpected response format from OpenAI API');
+        throw new Error('GROK Agent: Unexpected response format from GROK API');
       }
 
       return {
@@ -229,7 +232,7 @@ export class OpenAIAgent extends Agent {
         modelStats: modelStats
       };
     } catch (error) {
-      Logger.logger.error('OpenAI Agent: Error in OpenAI API call:', error);
+      Logger.logger.error('GROK Agent: Error in GROK API call:', error);
       throw error;
     }
   }

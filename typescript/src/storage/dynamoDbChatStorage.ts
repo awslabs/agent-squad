@@ -6,7 +6,7 @@ import {
 } from "@aws-sdk/lib-dynamodb";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { ChatStorage } from "./chatStorage";
-import { ConversationMessage, ParticipantRole, TimestampedMessage } from "../types";
+import { ConversationMessage, ParticipantRole, TimestampedMessage, ChatHistory } from "../types";
 import { Logger } from "../utils/logger";
 
 
@@ -100,19 +100,32 @@ export class DynamoDbChatStorage extends ChatStorage {
   }
 
   
-  async fetchAllChats(userId: string, sessionId: string): Promise<ConversationMessage[]> {
+  async fetchAllChats(userId: string, sessionId: string): Promise<ChatHistory> {
     try {
-      const response = await this.docClient.send(new QueryCommand({
-        TableName: this.tableName,
-        KeyConditionExpression: "PK = :pk and begins_with(SK, :skPrefix)",
-        ExpressionAttributeValues: {
-          ":pk": userId,
-          ":skPrefix": `${sessionId}#`,
-        },
-      }));
+      let queryCommand;
+      if(this.isAgentHistory){
+        queryCommand =  {
+          TableName: this.tableName,
+          KeyConditionExpression: "PK = :pk and begins_with(SK, :skPrefix)",
+          ExpressionAttributeValues: {
+            ":pk": userId,
+            ":skPrefix": `${sessionId}#`,
+          },
+        }
+      }else{
+        queryCommand =  {
+          TableName: this.tableName,
+          KeyConditionExpression: "PK = :pk and SK = :sk",
+          ExpressionAttributeValues: {
+            ":pk": userId,
+            ":sk": sessionId,
+          },
+        }
+      }
+      const response = await this.docClient.send(new QueryCommand(queryCommand));
   
       if (!response.Items || response.Items.length === 0) {
-        return [];
+        return {messages: []};
       }
   
       const allChats = response.Items.flatMap(item => {
@@ -123,18 +136,20 @@ export class DynamoDbChatStorage extends ChatStorage {
   
         // Extract agentId from the SK
         const agentId = item.SK.split('#')[1];
+        const agentName = agentId ? `[${agentId}] `: "";
   
         return item.conversation.map(msg => ({
           role: msg.role,
           content: msg.role === ParticipantRole.ASSISTANT
-            ? [{ text: `[${agentId}] ${Array.isArray(msg.content) ? msg.content[0]?.text || '' : msg.content || ''}` }]
+            ? [{ text: `${agentName}${Array.isArray(msg.content) ? msg.content[0]?.text || '' : msg.content || ''}` }]
             : (Array.isArray(msg.content) ? msg.content.map(content => ({ text: content.text })) : [{ text: msg.content || '' }]),
           timestamp: Number(msg.timestamp)
         } as TimestampedMessage));
       });
   
       allChats.sort((a, b) => a.timestamp - b.timestamp);
-      return this.removeTimestamps(allChats);
+      const messages =  this.removeTimestamps(allChats);
+      return { messages };
     } catch (error) {
       Logger.logger.error("Error querying conversations from DynamoDB:", error);
       throw error;

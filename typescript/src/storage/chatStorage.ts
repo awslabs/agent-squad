@@ -1,4 +1,4 @@
-import { ConversationMessage } from "../types";
+import { ConversationMessage, ChatHistory } from "../types";
 
 export abstract class ChatStorage {
 
@@ -34,6 +34,7 @@ export abstract class ChatStorage {
 
   abstract fetchAllChats(
     userId: string,
-    sessionId: string
-  ): Promise<ConversationMessage[]>;
+    sessionId: string,
+    query?: string
+  ): Promise<ChatHistory>;
 }
