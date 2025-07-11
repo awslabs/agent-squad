@@ -105,6 +105,7 @@ export class QdrantStorage extends ChatStorage {
   ): Promise<ChatHistory> {
 
     const [channelId, threadTs] = this.parseSessionId(sessionId);
+    Logger.logger.info(`Fetching All Chats: userid:${userId} channelid: ${channelId} theadTS:${threadTs}`);
     const context = await this.getRelevantContext(
         query, 
         userId,
@@ -143,6 +144,7 @@ export class QdrantStorage extends ChatStorage {
         messageType: 'user',
       } as QdrantConversationMessage);
 
+      Logger.logger.info(`Fetching relevant context : contextId:${contextId}`);
       let recentMessages: any[] = [];
 
       // Generate query embedding
@@ -158,6 +160,7 @@ export class QdrantStorage extends ChatStorage {
 
       // Get remaining messages from recent
       const remainingCount = maxResults - similarMessages.length;
+      Logger.logger.info(`Got ${similarMessages.length} similar messages, max is ${maxResults}, so remaining is ${remainingCount}`);
       if (remainingCount > 0) {
         recentMessages = await this.getRecentMessages(
           contextId,
@@ -170,7 +173,7 @@ export class QdrantStorage extends ChatStorage {
       const uniqueMessages = Array.from(
         new Map(allMessages.map(msg => [msg.id, msg])).values()
       );
-
+      Logger.logger.info(`Got ${recentMessages.length} no of recent messages. All messages: ${allMessages.length}. Unique: ${uniqueMessages.length}`);
       // Sort by timestamp
       uniqueMessages.sort((a, b) => 
         (a.payload?.timestamp || 0) - (b.payload?.timestamp || 0)
@@ -204,6 +207,7 @@ export class QdrantStorage extends ChatStorage {
     scoreThreshold: number = 0.7
   ): Promise<any[]> {
     try {
+      Logger.logger.info(`Searching for similar messages using embeddings.`);
       const searchResult = await this.client.search(this.collectionName, {
         vector: queryVector,
         filter: {
@@ -316,6 +320,7 @@ export class QdrantStorage extends ChatStorage {
     limit: number = 20
   ): Promise<any[]> {
     try {
+      Logger.logger.info(`Getting recent messages: contextId:${contextId}, limit:${limit}`);
       const searchResult = await this.client.scroll(this.collectionName, {
         filter: {
           must: [
