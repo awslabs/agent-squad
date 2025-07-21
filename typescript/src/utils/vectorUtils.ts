@@ -3,7 +3,7 @@ import {
   InvokeModelCommand,
 } from "@aws-sdk/client-bedrock-runtime";
 
-export class QdrantUtils {
+export class VectorUtils {
   private bedrockClient: BedrockRuntimeClient;
 
   constructor() {

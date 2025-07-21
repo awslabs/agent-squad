@@ -1,7 +1,7 @@
 import { QdrantClient } from "@qdrant/js-client-rest";
 import { ChatHistory, ConversationMessage, ParticipantRole } from "../types";
 import { ChatStorage } from "./chatStorage";
-import { QdrantUtils } from "../utils/qdrantUtils";
+import { VectorUtils } from "../utils/vectorUtils";
 import { Logger } from "../utils/logger";
 import { LLMUtils } from "../utils/llmUtils";
 import { v4 as uuidv4 } from "uuid";
@@ -39,7 +39,7 @@ export interface QdrantPoint {
 export class QdrantStorage extends ChatStorage {
   private client: QdrantClient;
   private collectionName: string;
-  private qdrantUtils: QdrantUtils;
+  private vectorUtils: VectorUtils;
   private llmUtils: LLMUtils;
   private maxCount: number;
 
@@ -50,7 +50,7 @@ export class QdrantStorage extends ChatStorage {
       apiKey: process.env.QDRANT_API_KEY,
     });
     this.collectionName = collectionName || process.env.QDRANT_COLLECTION;
-    this.qdrantUtils = new QdrantUtils();
+    this.vectorUtils = new VectorUtils();
     this.llmUtils = llmUtils;
     this.maxCount = maxCount || 20;
   }
@@ -148,7 +148,7 @@ export class QdrantStorage extends ChatStorage {
       let recentMessages: any[] = [];
 
       // Generate query embedding
-      const queryEmbedding = await this.qdrantUtils.generateEmbedding(query);
+      const queryEmbedding = await this.vectorUtils.generateEmbedding(query);
 
       // Search for similar messages
       const similarMessages = await this.searchSimilar(
@@ -234,7 +234,7 @@ export class QdrantStorage extends ChatStorage {
       const contextType = this.getContextType(message);
 
       // Generate embedding for the message
-      const embedding = await this.qdrantUtils.generateEmbedding(
+      const embedding = await this.vectorUtils.generateEmbedding(
         message.content
       );
 
@@ -413,7 +413,7 @@ export class QdrantStorage extends ChatStorage {
 
       // Store summary as a special message
       const summaryEmbedding =
-        await this.qdrantUtils.generateEmbedding(summary);
+        await this.vectorUtils.generateEmbedding(summary);
       const summaryPoint: QdrantPoint = {
         id: uuidv4(),
         vector: summaryEmbedding,
