@@ -199,14 +199,14 @@ export class PerplexityAgent extends Agent {
         }else{
             Logger.logger.error('Perplexity Agent: Error in Perplexity API call:', e);
         }
+        return {
+          role: ParticipantRole.ASSISTANT,
+          content: [{ text: "An error occured while connecting to perplexity." }],
+          modelStats: [],
+          citations: []
+        };
       }
 
-      return {
-        role: ParticipantRole.ASSISTANT,
-        content: [{ text: "perplexity" }],
-        modelStats: [],
-        citations: []
-      };
       
     }//processRequest
 

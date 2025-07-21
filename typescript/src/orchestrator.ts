@@ -367,7 +367,6 @@ export class MultiAgentOrchestrator {
       this.logger.info("Classifying user intent");
       const classifierResult = await this.classifier.classify(userInput, chatHistory);
       
-  
       this.logger.printIntent(userInput, classifierResult);
   
       if (!classifierResult.selectedAgent && this.config.USE_DEFAULT_AGENT_IF_NONE_IDENTIFIED && this.defaultAgent) {

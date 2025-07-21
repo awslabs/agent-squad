@@ -12,6 +12,7 @@ export {BedrockFlowsAgent, BedrockFlowsAgentOptions} from './agents/bedrockFlows
 export { SupervisorAgent, SupervisorAgentOptions } from './agents/supervisorAgent';
 export { PerplexityAgent, PerplexityAgentOptions } from './agents/perplexityAgent';
 export { GrokAgent, GrokAgentOptions } from './agents/grokAgent';
+export { TogetherAIAgent, TogetherAIAgentOptions } from "./agents/togetheraiAgent"
 export { AgentResponse } from './agents/agent';
 
 export { BedrockClassifier, BedrockClassifierOptions } from './classifiers/bedrockClassifier';
@@ -26,6 +27,7 @@ export { InMemoryChatStorage } from './storage/memoryChatStorage';
 export { DynamoDbChatStorage } from './storage/dynamoDbChatStorage';
 export { SqlChatStorage } from './storage/sqlChatStorage';
 export { QdrantStorage } from "./storage/qdrantStorage"
+export { PineconeStorage } from "./storage/pineconeStorage";
 
 export { Logger } from './utils/logger';
 export { LLMUtils } from "./utils/llmUtils";

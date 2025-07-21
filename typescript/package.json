@@ -1,6 +1,6 @@
 {
   "name": "@swatechnology/swa-multi-agent-orchestrator",
-  "version": "0.0.40",
+  "version": "0.0.60",
   "description": "Multi-Agent Orchestrator framework for SwaTech",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -18,8 +18,21 @@
     "coverage": "jest --coverage",
     "version": "auto-changelog -p && git add CHANGELOG.md"
   },
-  "dependencies": {
+  "peerDependencies": {
     "@anthropic-ai/sdk": "^0.24.3",
+    "openai": "^4.52.7",
+    "uuid": "^11.1.0"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.14.0",
+    "@pinecone-database/pinecone": "^6.1.1",
+    "axios": "^1.7.2",
+    "install": "^0.13.0",
+    "natural": "^7.0.7",
+    "npm": "^11.4.2",
+    "stopword": "^3.0.1"
+  },
+  "devDependencies": {
     "@aws-sdk/client-bedrock-agent-runtime": "^3.701.0",
     "@aws-sdk/client-bedrock-runtime": "^3.621.0",
     "@aws-sdk/client-comprehend": "^3.637.0",
@@ -29,17 +42,6 @@
     "@aws-sdk/client-s3": "^3.782.0",
     "@aws-sdk/lib-dynamodb": "^3.621.0",
     "@aws-sdk/util-dynamodb": "^3.621.0",
-    "@libsql/client": "^0.14.0",
-    "@qdrant/js-client-rest": "^1.14.1",
-    "axios": "^1.7.2",
-    "eslint-config-prettier": "^9.1.0",
-    "natural": "^7.0.7",
-    "openai": "^4.52.7",
-    "prettier": "^3.3.3",
-    "stopword": "^3.0.1",
-    "uuid": "^11.1.0"
-  },
-  "devDependencies": {
     "@types/jest": "^29.5.12",
     "@types/mocha": "^10.0.7",
     "@typescript-eslint/eslint-plugin": "^7.17.0",
@@ -48,7 +50,9 @@
     "aws-sdk-client-mock": "^4.0.1",
     "aws-sdk-client-mock-jest": "^4.0.1",
     "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
     "jest": "^29.7.0",
+    "prettier": "^3.3.3",
     "ts-jest": "^29.2.3",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.3"
