@@ -164,6 +164,7 @@ export class PineconeStorage extends ChatStorage {
 
   async getRecentMessages(contextId: string, limit = 20): Promise<any[]> {
     // Pinecone doesn't have a scroll; instead use filtered query for recent active messages.
+    Logger.logger.info('getting recent messages');
     const response = await this.client.index(this.indexName).query({
       vector: Array(VECTOR_DIMENSION).fill(0), // "Zero" vector to get recent; you might use a random probe or track recency in metadata.
       topK: limit,
@@ -190,6 +191,7 @@ export class PineconeStorage extends ChatStorage {
       const recents = await this.getRecentMessages(contextId, 1000);
       const messageIndex = recents.length;
 
+      Logger.logger.info(`Saving to vector store with id: ${message.id}`);
       // Upsert (Insert/update) into Pinecone index
       await this.client.index(this.indexName).upsert([
         {
@@ -230,7 +232,7 @@ export class PineconeStorage extends ChatStorage {
     const messages = await this.getRecentMessages(contextId, 1000);
     if (messages.length <= keepRecent) return;
     const toDeactivate = messages.slice(keepRecent);
-
+    Logger.logger.info('Deactivating old messages');
     for (const record of toDeactivate) {
       await this.client.index(this.indexName).upsert([
         {
@@ -256,6 +258,7 @@ export class PineconeStorage extends ChatStorage {
     const summary = await this.llmUtils.generateSummary(conversationText);
     const summaryEmbedding = await this.vectorUtils.generateEmbedding(summary);
 
+    Logger.logger.info('Saving summary to vector store');
     await this.client.index(this.indexName).upsert([
       {
         id: uuidv4(),
@@ -307,7 +310,7 @@ export class PineconeStorage extends ChatStorage {
 
   private generatePineconeId(channelId, threadTs, userId){
     const uniquePart = uuidv4().replace(/-/g, '').slice(0, 8); // 8-character UUID segment
-    return `${this.formContextId(userId, channelId, threadTs)}_${uniquePart};`
+    return `${this.formContextId(userId, channelId, threadTs)}_${uniquePart}`
   }
 
   private async getContextSummary(contextId: string): Promise<string | undefined> {

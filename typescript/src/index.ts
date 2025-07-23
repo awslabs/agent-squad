@@ -26,7 +26,6 @@ export { ChatStorage } from './storage/chatStorage';
 export { InMemoryChatStorage } from './storage/memoryChatStorage';
 export { DynamoDbChatStorage } from './storage/dynamoDbChatStorage';
 export { SqlChatStorage } from './storage/sqlChatStorage';
-export { QdrantStorage } from "./storage/qdrantStorage"
 export { PineconeStorage } from "./storage/pineconeStorage";
 
 export { Logger } from './utils/logger';
