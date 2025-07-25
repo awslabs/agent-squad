@@ -484,7 +484,8 @@ export class AgentSquad {
           this.storage,
           userId,
           sessionId,
-          agent.id
+          agent.id,
+          this.config.MAX_MESSAGE_PAIRS_PER_AGENT
         );
       }
 
