@@ -156,6 +156,87 @@ describe('AgentSquad', () => {
     expect(response.output).toBe(mockAccumulatorTransform);
   });
 
+  test('streaming response saves conversation history with maxHistorySize', async () => {
+    // Create a custom orchestrator with specific MAX_MESSAGE_PAIRS_PER_AGENT
+    const customOrchestrator = new AgentSquad({
+      storage: mockStorage,
+      classifier: mockClassifier,
+      config: {
+        LOG_EXECUTION_TIMES: true,
+        USE_DEFAULT_AGENT_IF_NONE_IDENTIFIED: true,
+        MAX_MESSAGE_PAIRS_PER_AGENT: 10,
+      },
+    });
+
+    const userInput = 'Test streaming save';
+    const userId = 'user1';
+    const sessionId = 'session1';
+
+    const mockAgent = {
+      id: 'test-agent',
+      name: 'Test Agent',
+      description: 'A test agent',
+      processRequest: jest.fn(),
+      saveChat: true,
+    } as unknown as jest.Mocked<Agent>;
+
+    customOrchestrator.addAgent(mockAgent);
+
+    const mockClassifierResult: ClassifierResult = {
+      selectedAgent: mockAgent,
+      confidence: 0.9,
+    };
+
+    mockClassifier.classify.mockResolvedValue(mockClassifierResult);
+
+    const mockStream = (async function* () {
+      yield 'Hello';
+      yield ' world';
+      yield '!';
+    })();
+
+    mockAgent.processRequest.mockResolvedValue(mockStream);
+
+    // Mock the AccumulatorTransform to simulate streaming completion
+    const mockAccumulatorTransform = {
+      getAccumulatedData: jest.fn().mockReturnValue('Hello world!'),
+      on: jest.fn().mockImplementation((event, handler) => {
+        if (event === 'finish') {
+          // Simulate stream finishing after a short delay
+          setTimeout(() => handler(), 10);
+        }
+        return mockAccumulatorTransform;
+      }),
+      write: jest.fn().mockReturnValue(true),
+      end: jest.fn(),
+      destroy: jest.fn(),
+      pipe: jest.fn(),
+      unpipe: jest.fn(),
+      removeListener: jest.fn(),
+    };
+    
+    (AccumulatorTransform as jest.MockedClass<typeof AccumulatorTransform>).mockImplementation(() => mockAccumulatorTransform as any);
+
+    // Mock storage methods
+    mockStorage.fetchAllChats.mockResolvedValue([]);
+
+    const response = await customOrchestrator.routeRequest(userInput, userId, sessionId);
+
+    // Wait for the stream to finish processing
+    await new Promise(resolve => setTimeout(resolve, 50));
+
+    // Verify that saveConversationExchange was called with the correct parameters
+    expect(chatUtils.saveConversationExchange).toHaveBeenCalledWith(
+      userInput,
+      'Hello world!',
+      mockStorage,
+      userId,
+      sessionId,
+      mockAgent.id,
+      10 // MAX_MESSAGE_PAIRS_PER_AGENT from config
+    );
+  });
+
   test('setDefaultAgent changes the default agent', () => {
     const newDefaultAgent: Agent = {
       id: 'new-default',
