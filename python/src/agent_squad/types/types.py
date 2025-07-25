@@ -14,7 +14,7 @@ ANTHROPIC_MODEL_ID_CLAUDE_3_5_SONNET = "claude-3-5-sonnet-20240620"
 class AgentProviderType(Enum):
     BEDROCK = "BEDROCK"
     ANTHROPIC = "ANTHROPIC"
-
+    OPENAI = "OPENAI"
 
 class AgentTypes(Enum):
     DEFAULT = "Common Knowledge"
@@ -38,7 +38,7 @@ class RequestMetadata(TypedDict):
 class ParticipantRole(Enum):
     ASSISTANT = "assistant"
     USER = "user"
-
+    TOOL = "tool"
 
 class ConversationMessage:
     role: ParticipantRole
