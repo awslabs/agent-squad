@@ -8,7 +8,7 @@ import { saveConversationExchange } from "./utils/chatUtils";
 import { Logger } from "./utils/logger";
 import { BedrockClassifier } from "./classifiers/bedrockClassifier";
 import { Classifier } from "./classifiers/classifier";
-import { ConversationMessage, ChatHistory } from "./types";
+import { ChatHistory } from "./types";
 
 export interface OrchestratorConfig {
   /** If true, logs the chat interactions with the agent */
