@@ -365,7 +365,18 @@ export class MultiAgentOrchestrator {
       // );
 
       this.logger.info("Classifying user intent");
-      const classifierResult = await this.classifier.classify(userInput, chatHistory);
+      let classifierResult;
+      try{
+        classifierResult = await this.classifier.classify(userInput, chatHistory);
+      }catch(e){
+        this.logger.error("There was an error during classification: ",e);
+        this.logger.info("Default agent to be used due to an error");
+        classifierResult={};
+        classifierResult.modelStats = {};
+        classifierResult.modelStats["from"] = "classifier_error";
+        classifierResult.modelStats["usage"] = {};
+      }
+      
       
       this.logger.printIntent(userInput, classifierResult);
   
