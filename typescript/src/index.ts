@@ -13,6 +13,7 @@ export { SupervisorAgent, SupervisorAgentOptions } from './agents/supervisorAgen
 export { PerplexityAgent, PerplexityAgentOptions } from './agents/perplexityAgent';
 export { GrokAgent, GrokAgentOptions } from './agents/grokAgent';
 export { TogetherAIAgent, TogetherAIAgentOptions } from "./agents/togetheraiAgent"
+export { GeminiAIAgent, GeminiAgentOptions } from "./agents/geminiAgent"
 export { AgentResponse } from './agents/agent';
 
 export { BedrockClassifier, BedrockClassifierOptions } from './classifiers/bedrockClassifier';
