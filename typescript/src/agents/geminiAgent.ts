@@ -36,7 +36,7 @@ export type GeminiAgentOptionsWithAuth = GeminiAgentOptions & (WithApiKey | With
 
 const DEFAULT_MAX_TOKENS = 4096;
 
-export class GeminiAIAgent extends Agent {
+export class GeminiAgent extends Agent {
   private client: OpenAI;
   private model: string;
   private streaming: boolean;

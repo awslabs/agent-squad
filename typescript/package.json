@@ -1,6 +1,6 @@
 {
   "name": "@swatechnology/swa-multi-agent-orchestrator",
-  "version": "0.0.65",
+  "version": "0.0.66",
   "description": "Multi-Agent Orchestrator framework for SwaTech",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -19,7 +19,7 @@
     "version": "auto-changelog -p && git add CHANGELOG.md"
   },
   "peerDependencies": {
-    "@anthropic-ai/sdk": "^0.24.3",
+    "@anthropic-ai/sdk": "^0.36.3",
     "openai": "^4.52.7",
     "uuid": "^11.1.0"
   },
