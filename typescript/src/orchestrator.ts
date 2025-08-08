@@ -1,4 +1,4 @@
-import { AgentOverlapAnalyzer } from "./agentOverlapAnalyzer";
+// import { AgentOverlapAnalyzer } from "./agentOverlapAnalyzer";
 import { Agent, AgentResponse } from "./agents/agent";
 import { ClassifierResult } from './classifiers/classifier';
 import { ChatStorage } from "./storage/chatStorage";
@@ -236,9 +236,9 @@ export class MultiAgentOrchestrator {
   }
 
   analyzeAgentOverlap(): void {
-    const agents = this.getAllAgents();
-    const analyzer = new AgentOverlapAnalyzer(agents);
-    analyzer.analyzeOverlap();
+    // const agents = this.getAllAgents();
+    // const analyzer = new AgentOverlapAnalyzer(agents);
+    // analyzer.analyzeOverlap();
   }
 
   addAgent(agent: Agent): void {

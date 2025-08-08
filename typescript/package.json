@@ -1,6 +1,6 @@
 {
   "name": "@swatechnology/swa-multi-agent-orchestrator",
-  "version": "0.0.66",
+  "version": "0.0.67",
   "description": "Multi-Agent Orchestrator framework for SwaTech",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -24,13 +24,8 @@
     "uuid": "^11.1.0"
   },
   "dependencies": {
-    "@libsql/client": "^0.14.0",
     "@pinecone-database/pinecone": "^6.1.1",
-    "axios": "^1.7.2",
-    "install": "^0.13.0",
-    "natural": "^7.0.7",
-    "npm": "^11.4.2",
-    "stopword": "^3.0.1"
+    "axios": "^1.7.2"
   },
   "devDependencies": {
     "@aws-sdk/client-bedrock-agent-runtime": "^3.701.0",
