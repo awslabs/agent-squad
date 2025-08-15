@@ -120,7 +120,7 @@ export class BedrockClassifier extends Classifier{
   async processRequest(
     inputText: string,
     chatHistory: ChatHistory
-  ): Promise<ClassifierResult> {
+  ): Promise<ClassifierResult[]> {
     // Construct the user's message based on the provided inputText
     const userMessage: ConversationMessage = {
       role: ParticipantRole.USER,
@@ -182,7 +182,7 @@ export class BedrockClassifier extends Classifier{
                 confidence: parseFloat(toolUse.input.confidence),
                 modelStats: []
               };
-              return intentClassifierResult;
+              return [intentClassifierResult];
           }
         }
       }

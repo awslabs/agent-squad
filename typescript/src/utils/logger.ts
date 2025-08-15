@@ -78,7 +78,7 @@ export class Logger {
   printIntent(userInput: string, intentClassifierResult: ClassifierResult): void {
     if (!this.config.LOG_CLASSIFIER_OUTPUT) return;
 
-    this.logHeader('Classified Intent');
+    this.logHeader('\n=====Classified Intent=====\n');
 
     Logger.logger.info(`> Text: ${userInput}`);
     Logger.logger.info(`> Selected Agent: ${

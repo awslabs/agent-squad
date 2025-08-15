@@ -8,7 +8,7 @@ import { Agent } from "../agents/agent";
 
 export interface ClassifierResult {
   // The agent selected by the classifier to handle the user's request
-  selectedAgent: Agent | null;
+  selectedAgent: Agent;
 
   // A numeric value representing the classifier's confidence in its selection
   // Typically a value between 0 and 1, where 1 represents 100% confidence
@@ -53,7 +53,7 @@ You are AgentMatcher, an intelligent assistant designed to analyze user queries 
 
 Important: The user's input may be a follow-up response to a previous interaction. The conversation history, including the name of the previously selected agent, is provided. If the user's input appears to be a continuation of the previous conversation (e.g., "yes", "ok", "I want to know more", "1"), select the same agent as before.
 
-Analyze the user's input and categorize it into one of the following agent types:
+Analyze the user's input and categorize it using the following agent types. If you feel like there are multiple agents needed , then return multiple agents as an array, in the right order
 <agents>
 {{AGENT_DESCRIPTIONS}}
 </agents>
@@ -62,7 +62,8 @@ If you are unable to select an agent put "unkwnown"
 
 Guidelines for classification:
 
-    Agent Type: Choose the most appropriate agent type based on the nature of the query. For follow-up responses, use the same agent type as the previous interaction.
+    Agent Type: Choose the most appropriate agent or agents  based on the nature of the query. For follow-up responses, use the same agent type as the previous interaction.
+    If user queries need multiple agents to be invoked, then given them as a list.
     Priority: Assign based on urgency and impact.
         High: Issues affecting service, billing problems, or urgent technical issues
         Medium: Non-urgent product inquiries, sales questions
@@ -89,6 +90,7 @@ Here is the recent conversation history that you need to take into account befor
 </history>
 
 Examples:
+
 
 1. Initial query with no context:
 User: "What are the symptoms of the flu?"
@@ -132,6 +134,18 @@ User: "It says my password is incorrect, but I'm sure it's right"
 userinput: It says my password is incorrect, but I'm sure it's right
 selected_agent: agent-name-c
 confidence: 0.9
+
+5. Multiple agents based on single query
+User: :Analyze this image using and then summarize using grok"
+
+agents:
+userinput: Analyze this image using and then summarize using grok
+selected_agent: image-agent
+confidence: 0.95
+
+userinput: Analyze this image using and then summarize using grok
+selected_agent: grok
+confidence: 0.95
 
 Skip any preamble and provide only the response in the specified format.
 `;
@@ -186,7 +200,7 @@ Skip any preamble and provide only the response in the specified format.
     async classify(
       inputText: string,
       chatHistory: ChatHistory
-    ): Promise<ClassifierResult> {
+    ): Promise<ClassifierResult[]> {
       // Set the chat history
       this.setHistory(chatHistory.messages);
       this.summary = chatHistory.summary;
@@ -206,7 +220,7 @@ Skip any preamble and provide only the response in the specified format.
     abstract processRequest(
       inputText: string,
       chatHistory: ChatHistory
-    ): Promise<ClassifierResult>;
+    ): Promise<ClassifierResult[]>;
 
 
   private updateSystemPrompt(): void {

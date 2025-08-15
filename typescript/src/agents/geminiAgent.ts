@@ -196,11 +196,13 @@ export class GeminiAgent extends Agent {
   private async handleSingleResponse(input: any): Promise<ConversationMessage> {
     try {
       const nonStreamingOptions = { ...input, stream: false };
-      const chatCompletion = await this.client.chat.completions.create(nonStreamingOptions);
-      
       if(this.logRequest){
         console.log("\n\n---- Gemini Agent ----");
         console.log(JSON.stringify(nonStreamingOptions));
+      }
+      const chatCompletion = await this.client.chat.completions.create(nonStreamingOptions);
+      
+      if(this.logRequest){
         console.log(JSON.stringify(chatCompletion));
         console.log("\n\n");
       }

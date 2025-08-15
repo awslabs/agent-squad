@@ -1,5 +1,5 @@
 // import { AgentOverlapAnalyzer } from "./agentOverlapAnalyzer";
-import { Agent, AgentResponse } from "./agents/agent";
+import { Agent, AgentProcessingResult, AgentResponse } from "./agents/agent";
 import { ClassifierResult } from './classifiers/classifier';
 import { ChatStorage } from "./storage/chatStorage";
 import { InMemoryChatStorage } from "./storage/memoryChatStorage";
@@ -8,7 +8,7 @@ import { saveConversationExchange } from "./utils/chatUtils";
 import { Logger } from "./utils/logger";
 import { BedrockClassifier } from "./classifiers/bedrockClassifier";
 import { Classifier } from "./classifiers/classifier";
-import { ChatHistory } from "./types";
+import { ChatHistory, ConversationMessage, ParticipantRole } from "./types";
 
 export interface OrchestratorConfig {
   /** If true, logs the chat interactions with the agent */
@@ -356,7 +356,7 @@ export class MultiAgentOrchestrator {
     userId: string,
     sessionId: string, 
     chatHistory: ChatHistory
-  ): Promise<ClassifierResult> {
+  ): Promise<ClassifierResult[]> {
     try {
       // const chatHistory = await this.storage.fetchAllChats(userId, sessionId) || [];
       // const classifierResult = await this.measureExecutionTime(
@@ -365,28 +365,28 @@ export class MultiAgentOrchestrator {
       // );
 
       this.logger.info("Classifying user intent");
-      let classifierResult;
+      let classifierResults;
       try{
-        classifierResult = await this.classifier.classify(userInput, chatHistory);
+        classifierResults = await this.classifier.classify(userInput, chatHistory);
       }catch(e){
         this.logger.error("There was an error during classification: ",e);
         this.logger.info("Default agent to be used due to an error");
-        classifierResult={};
-        classifierResult.modelStats = {};
-        classifierResult.modelStats["from"] = "classifier_error";
-        classifierResult.modelStats["usage"] = {};
+        classifierResults=[];
+        const classifierResult=this.getFallbackResult(null);
+        classifierResult["modelStats"]["from"] = "classifier_error";
+        classifierResult["modelStats"]["usage"] = {};
+        classifierResults.push(classifierResult);
       }
       
-      
-      this.logger.printIntent(userInput, classifierResult);
-  
-      if (!classifierResult.selectedAgent && this.config.USE_DEFAULT_AGENT_IF_NONE_IDENTIFIED && this.defaultAgent) {
-        const fallbackResult = this.getFallbackResult(classifierResult.modelStats);
-        this.logger.info("Using default agent as no agent was selected");
-        return fallbackResult;
+      for(const [index,classifierResult] of classifierResults.entries()){
+        this.logger.printIntent(userInput, classifierResult);
+        if (!classifierResult.selectedAgent && this.config.USE_DEFAULT_AGENT_IF_NONE_IDENTIFIED && this.defaultAgent) {
+          this.logger.info("Using default agent as no agent was selected at index: ", index);
+          classifierResults[index]  = this.getFallbackResult(classifierResult.modelStats);;
+        }
       }
   
-      return classifierResult;
+      return classifierResults;
     } catch (error) {
       this.logger.error("Error during intent classification:", error);
       throw error;
@@ -464,36 +464,79 @@ export class MultiAgentOrchestrator {
   ): Promise<AgentResponse> {
     this.executionTimes = new Map();
   
-    let modelStats = [];
+    // let modelStats = [];
     try {
       const chatHistory = await this.storage.fetchAllChats(userId, sessionId, userInput) ||  { messages : []} ;
       this.logger.printChatHistory(chatHistory.messages);
       this.logger.info(`Chat Summary: ${chatHistory.summary}`);
-      const classifierResult = await this.classifyRequest(userInput, userId, sessionId, chatHistory);
-      modelStats =  classifierResult.modelStats;
-      if (!classifierResult.selectedAgent) {
-        return {
-          metadata: this.createMetadata(classifierResult, userInput, userId, sessionId, additionalParams),
-          output: this.config.NO_SELECTED_AGENT_MESSAGE!,
-          streaming: false,
-          modelStats: modelStats
-        };
+      const classifierResults = await this.classifyRequest(userInput, userId, sessionId, chatHistory);
+
+      //iterate over classified results
+      let agentResponse;
+      const combinedMetadata = {} as Omit<AgentProcessingResult, 'response'>;
+      const info = [];
+      for(const classifierResult of classifierResults){
+        agentResponse =  await this.agentProcessRequest(userInput, userId, sessionId, classifierResult, additionalParams, chatHistory);
+
+        const updatedMessage = {} as ConversationMessage;
+        updatedMessage["role"] = ParticipantRole.ASSISTANT;
+        updatedMessage["content"] = [{"text":agentResponse.output}];
+        chatHistory.messages.push(updatedMessage);
+
+        this.combineAgentResponses(combinedMetadata, info, classifierResult, agentResponse);
       }
-  
-      return await this.agentProcessRequest(userInput, userId, sessionId, classifierResult, additionalParams, chatHistory);
+
+      //update data for all agents invoked.
+      //modelstats is not needed to be combined as its the same array being set inside classifier.
+      agentResponse.info =info;
+      agentResponse.metadata = combinedMetadata;
+      return agentResponse;
+
     } catch (error) {
+      console.log(error);
       return {
         metadata: this.createMetadata(null, userInput, userId, sessionId, additionalParams),
         output: this.config.GENERAL_ROUTING_ERROR_MSG_MESSAGE || String(error),
         streaming: false,
-        modelStats: modelStats
+        modelStats: []
       };
     } finally {
       this.logger.printExecutionTimes(this.executionTimes);
     }
   }
-  
 
+  /**
+   * Combined responses from multiple agent calls and classifier into one.
+   * We dont need to combine modelstats as the same array is set against all classifier entries. so
+   * it gets updated automatically within all agents that is called.
+   * @param combinedMetadata 
+   * @param info 
+   * @param classifierResult 
+   * @param agentResponse 
+   * @returns 
+   */
+  private combineAgentResponses(combinedMetadata: Omit<AgentProcessingResult, 'response'>,info: any, classifierResult: ClassifierResult, agentResponse: AgentResponse) {
+    this.combineMetadata(combinedMetadata, agentResponse.metadata);
+    const agentInfo = agentResponse.info;
+    if(!agentInfo?.citations){
+      return
+    }
+    if(!info["citations"]){
+      info["citations"] = [];
+    }
+
+    info["citations"].push(...agentInfo["citations"]);
+  }
+
+  private combineMetadata(combinedMetadata, metadata){
+    if(!combinedMetadata.agentId){
+      Object.assign(combinedMetadata, metadata);
+    }else{
+      combinedMetadata.agentId = combinedMetadata.agentId+","+metadata.agentId;
+      combinedMetadata.agentName = combinedMetadata.agentName+","+metadata.agentName;
+    }
+  }
+  
   private async processStreamInBackground(
     agentResponse: AsyncIterable<any>,
     accumulatorTransform: AccumulatorTransform,
@@ -609,11 +652,12 @@ export class MultiAgentOrchestrator {
     };
   }
 
-  private getFallbackResult(modelStats: any[]): ClassifierResult {
+  private getFallbackResult(m:[] | null | undefined ): ClassifierResult {
     return {
       selectedAgent: this.getDefaultAgent(),
       confidence: 0,
-      modelStats: modelStats
-    };
+      modelStats: m ?? []
+     };
   }
+
 }

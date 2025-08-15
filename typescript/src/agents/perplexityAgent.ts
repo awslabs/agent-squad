@@ -162,10 +162,12 @@ export class PerplexityAgent extends Agent {
       }
       let perplexityResp: any;
       try{
-        const retVal = await axios(requestOptions);
         if(this.logRequest){
           console.log("\n\n---- Perplexity Agent ----");
           console.log(JSON.stringify(requestOptions));
+        }
+        const retVal = await axios(requestOptions);
+        if(this.logRequest){
           console.log(JSON.stringify(retVal?.data));
           console.log("\n\n");
         }

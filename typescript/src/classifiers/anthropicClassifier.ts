@@ -47,6 +47,31 @@ export class AnthropicClassifier extends Classifier {
     stopSequences?: string[];
   };
 
+  // private tools: Anthropic.Tool[] = [
+  //   {
+  //     name: "analyzePrompt",
+  //     description: "Analyze the user input and provide structured output",
+  //     input_schema: {
+  //       type: "object",
+  //       properties: {
+  //         userinput: {
+  //           type: "string",
+  //           description: "The original user input",
+  //         },
+  //         selected_agent: {
+  //           type: "string",
+  //           description: "The name of the selected agent",
+  //         },
+  //         confidence: {
+  //           type: "number",
+  //           description: "Confidence level between 0 and 1",
+  //         },
+  //       },
+  //       required: ["userinput", "selected_agent", "confidence"],
+  //     },
+  //   },
+  // ];
+
   private tools: Anthropic.Tool[] = [
     {
       name: "analyzePrompt",
@@ -54,23 +79,33 @@ export class AnthropicClassifier extends Classifier {
       input_schema: {
         type: "object",
         properties: {
-          userinput: {
-            type: "string",
-            description: "The original user input",
-          },
-          selected_agent: {
-            type: "string",
-            description: "The name of the selected agent",
-          },
-          confidence: {
-            type: "number",
-            description: "Confidence level between 0 and 1",
-          },
+          agents: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+              userinput: {
+                type: "string",
+                description: "The original user input",
+              },
+              selected_agent: {
+                type: "string",
+                description: "The name of the selected agent",
+              },
+              confidence: {
+                type: "number",
+                description: "Confidence level between 0 and 1",
+              },
+            },
+            required: ["userinput", "selected_agent", "confidence"],
+            }
+          }
         },
-        required: ["userinput", "selected_agent", "confidence"],
+        required: ["agents"],
       },
     },
   ];
+  
 
   constructor(options: AnthropicClassifierOptions) {
     super();
@@ -95,7 +130,7 @@ export class AnthropicClassifier extends Classifier {
   async processRequest(
     inputText: string,
     chatHistory: ChatHistory
-  ): Promise<ClassifierResult> {
+  ): Promise<ClassifierResult[]> {
     const userMessage: Anthropic.MessageParam = {
       role: ParticipantRole.USER,
       content: inputText,
@@ -116,11 +151,14 @@ export class AnthropicClassifier extends Classifier {
           top_p: this.inferenceConfig.topP,
           tools: this.tools,
         };
-        const response = await this.client.messages.create(req);
-
         if (this.logRequest) {
           console.log("\n\n---- Anthropic Classifier ----");
           console.log(JSON.stringify(req));
+        }
+
+        const response = await this.client.messages.create(req);
+
+        if (this.logRequest) {
           console.log(JSON.stringify(response));
           console.log("\n\n");
         }
@@ -144,43 +182,55 @@ export class AnthropicClassifier extends Classifier {
           );
         }
 
-        if (!isClassifierToolInput(toolUse.input)) {
-          throw new Error(
-            "Classifier Error: Tool input does not match expected structure"
-          );
-        }
+        const classifiedResults = [];
 
         //update agent description from s3 by replacing the current description which is summary.
-        const selectedAgent = this.getAgentById(toolUse.input.selected_agent);
+        const input = toolUse.input;
 
-        //update description from s3 only if s3 details are provided.
-        /**
-         * Ideally all agents from db should have description in s3.
-         * But if we create a custom agent class itself, we can handle the description part in the custom class
-         * So in that case, there is no s3 details to fetch as custom prompt or very detailed description is in class itself
-         * if that class also wants to store description in s3, set the variable.
-         */
-        if (
-          selectedAgent &&
-          selectedAgent.s3details &&
-          selectedAgent.s3details.indexOf("##") > 0
-        ) {
-          Logger.logger.info(
-            `For selected agent fetching info from s3: ${selectedAgent.s3details}`
-          );
-          const s3details = selectedAgent.s3details;
-          const [S3Bucket, fileId] = s3details.split("##");
-          const description = await fetchDescription(S3Bucket, fileId);
-          selectedAgent.description = description;
+        if(input['agents']){
+          for(const agent of input['agents']){
+
+            if (!isClassifierToolInput(agent)) {
+              throw new Error(
+                "Classifier Error: Tool input does not match expected structure"
+              );
+            }
+
+            const selectedAgent = this.getAgentById(agent['selected_agent']);
+            //update description from s3 only if s3 details are provided.
+            /**
+             * Ideally all agents from db should have description in s3.
+             * But if we create a custom agent class itself, we can handle the description part in the custom class
+             * So in that case, there is no s3 details to fetch as custom prompt or very detailed description is in class itself
+             * if that class also wants to store description in s3, set the variable.
+             */
+            if (
+              selectedAgent &&
+              selectedAgent.s3details &&
+              selectedAgent.s3details.indexOf("##") > 0
+            ) {
+              Logger.logger.info(
+                `For selected agent fetching info from s3: ${selectedAgent.s3details}`
+              );
+              const s3details = selectedAgent.s3details;
+              const [S3Bucket, fileId] = s3details.split("##");
+              const description = await fetchDescription(S3Bucket, fileId);
+              selectedAgent.description = description;
+            }
+
+                // Create and return IntentClassifierResult
+            const intentClassifierResult: ClassifierResult = {
+              selectedAgent: selectedAgent,
+              confidence: parseFloat(agent.confidence),
+              modelStats: modelStats,
+            };
+            classifiedResults.push(intentClassifierResult);
+
+          }
+
         }
-
-        // Create and return IntentClassifierResult
-        const intentClassifierResult: ClassifierResult = {
-          selectedAgent: selectedAgent,
-          confidence: parseFloat(toolUse.input.confidence),
-          modelStats: modelStats,
-        };
-        return intentClassifierResult;
+        
+        return classifiedResults;
       } catch (error) {
         Logger.logger.error(
           "Anthropic Classifier Error: Error classifying request:",

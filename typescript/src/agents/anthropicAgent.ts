@@ -298,7 +298,15 @@ export class AnthropicAgent extends Agent {
                   : this.toolConfig.tool,
             }),
           };
+          if(this.logRequest){
+            console.log("\n\n---- Anthropic Agent ----");
+            console.log(JSON.stringify(llmInput));
+          }
           const response = await this.handleSingleResponse(llmInput);
+          if(this.logRequest){
+            console.log(JSON.stringify(response));
+            console.log("\n\n");
+          }
           const obj = {};
           obj["id"] = response.id;
           obj["model"] = response.model;
@@ -306,12 +314,7 @@ export class AnthropicAgent extends Agent {
           obj["from"] = "agent-anthropic";
           modelStats.push(obj);
           Logger.logger.info(`Anthropic Agent Usage: `, JSON.stringify(obj));
-          if(this.logRequest){
-            console.log("\n\n---- Anthropic Agent ----");
-            console.log(JSON.stringify(llmInput));
-            console.log(JSON.stringify(response));
-            console.log("\n\n");
-          }
+         
 
           const toolUseBlocks = response.content.filter<Anthropic.ToolUseBlock>(
             (content) => content.type === "tool_use"

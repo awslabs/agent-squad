@@ -41,6 +41,34 @@ export class OpenAIClassifier extends Classifier {
     stopSequences?: string[];
   };
 
+  // private tools: OpenAI.ChatCompletionTool[] = [
+  //   {
+  //     type: "function",
+  //     function: {
+  //       name: "analyzePrompt",
+  //       description: "Analyze the user input and provide structured output",
+  //       parameters: {
+  //         type: "object",
+  //         properties: {
+  //           userinput: {
+  //             type: "string",
+  //             description: "The original user input",
+  //           },
+  //           selected_agent: {
+  //             type: "string",
+  //             description: "The name of the selected agent",
+  //           },
+  //           confidence: {
+  //             type: "number",
+  //             description: "Confidence level between 0 and 1",
+  //           },
+  //         },
+  //         required: ["userinput", "selected_agent", "confidence"],
+  //       },
+  //     },
+  //   },
+  // ];
+
   private tools: OpenAI.ChatCompletionTool[] = [
     {
       type: "function",
@@ -50,24 +78,36 @@ export class OpenAIClassifier extends Classifier {
         parameters: {
           type: "object",
           properties: {
-            userinput: {
-              type: "string",
-              description: "The original user input",
-            },
-            selected_agent: {
-              type: "string",
-              description: "The name of the selected agent",
-            },
-            confidence: {
-              type: "number",
-              description: "Confidence level between 0 and 1",
-            },
+            agents: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                userinput: {
+                  type: "string",
+                  description: "The original user input",
+                },
+                selected_agent: {
+                  type: "string",
+                  description: "The name of the selected agent",
+                },
+                confidence: {
+                  type: "number",
+                  description: "Confidence level between 0 and 1",
+                },
+              },
+              required: ["userinput", "selected_agent", "confidence"],
+              }
+            }
           },
-          required: ["userinput", "selected_agent", "confidence"],
+          required: ["agents"],
         },
       },
     },
   ];
+
+
+
 
   constructor(options: OpenAIClassifierOptions) {
     super();
@@ -101,7 +141,7 @@ export class OpenAIClassifier extends Classifier {
   async processRequest(
     inputText: string,
     chatHistory: ChatHistory
-  ): Promise<ClassifierResult> {
+  ): Promise<ClassifierResult[]> {
     const messages: OpenAI.ChatCompletionMessageParam[] = [
       {
         role: "system",
@@ -124,11 +164,14 @@ export class OpenAIClassifier extends Classifier {
         tool_choice: { type: "function", function: { name: "analyzePrompt" } },
       };
 
-      const response = await this.client.chat.completions.create(req);
-
       if (this.logRequest) {
         console.log("\n\n---- OpenAI Classifier ----");
         console.log(JSON.stringify(req));
+      }
+
+      const response = await this.client.chat.completions.create(req);
+
+      if (this.logRequest) {
         console.log(JSON.stringify(response));
         console.log("\n\n");
       }
@@ -150,43 +193,54 @@ export class OpenAIClassifier extends Classifier {
 
       const toolInput = JSON.parse(toolCall.function.arguments);
 
-      if (!isClassifierToolInput(toolInput)) {
-        throw new Error("Tool input does not match expected structure");
+      const classifiedResults = [];
+
+      if(toolInput['agents']){
+      //iterate over tool calls for multiple agents
+        for(const agent of toolInput['agents']){
+
+          if (!isClassifierToolInput(agent)) {
+            console.log( " ?? ", agent);
+            throw new Error("Tool input does not match expected structure.");
+          }
+          //update agent description from s3 by replacing the current description which is summary.
+          const selectedAgent = this.getAgentById(agent['selected_agent']);
+              //update description from s3 only if s3 details are provided.
+          /**
+           * Ideally all agents from db should have description in s3.
+           * But if we create a custom agent class itself, we can handle the description part in the custom class
+           * So in that case, there is no s3 details to fetch as custom prompt or very detailed description is in class itself
+           * if that class also wants to store description in s3, set the variable.
+           */
+          if (
+            selectedAgent &&
+            selectedAgent.s3details &&
+            selectedAgent.s3details.indexOf("##") > 0
+          ) {
+            Logger.logger.info(
+              `For selected agent fetching info from s3: ${selectedAgent.s3details}`
+            );
+            const s3details = selectedAgent.s3details;
+            const [S3Bucket, fileId] = s3details.split("##");
+            const description = await fetchDescription(S3Bucket, fileId);
+            selectedAgent.description = description;
+            Logger.logger.info(
+              `For selected agent updated description from s3 : ${selectedAgent.description}`
+            );
+          }
+          const intentClassifierResult: ClassifierResult = {
+            selectedAgent: selectedAgent,
+            confidence: parseFloat(toolInput.confidence),
+            modelStats: modelStats,
+          };
+          classifiedResults.push(intentClassifierResult)
+        }
+      }else{
+        Logger.logger.error("OpenAI Classfier Error processing request:");
       }
+     
 
-      //update agent description from s3 by replacing the current description which is summary.
-      const selectedAgent = this.getAgentById(toolInput.selected_agent);
-
-      //update description from s3 only if s3 details are provided.
-      /**
-       * Ideally all agents from db should have description in s3.
-       * But if we create a custom agent class itself, we can handle the description part in the custom class
-       * So in that case, there is no s3 details to fetch as custom prompt or very detailed description is in class itself
-       * if that class also wants to store description in s3, set the variable.
-       */
-      if (
-        selectedAgent &&
-        selectedAgent.s3details &&
-        selectedAgent.s3details.indexOf("##") > 0
-      ) {
-        Logger.logger.info(
-          `For selected agent fetching info from s3: ${selectedAgent.s3details}`
-        );
-        const s3details = selectedAgent.s3details;
-        const [S3Bucket, fileId] = s3details.split("##");
-        const description = await fetchDescription(S3Bucket, fileId);
-        selectedAgent.description = description;
-        Logger.logger.info(
-          `For selected agent updated description from s3 : ${selectedAgent.description}`
-        );
-      }
-
-      const intentClassifierResult: ClassifierResult = {
-        selectedAgent: selectedAgent,
-        confidence: parseFloat(toolInput.confidence),
-        modelStats: modelStats,
-      };
-      return intentClassifierResult;
+      return classifiedResults;
     } catch (error) {
       Logger.logger.error("OpenAI Classfier Error processing request:", error);
       throw error;
