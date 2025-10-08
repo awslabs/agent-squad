@@ -29,7 +29,7 @@
     "@aws-sdk/credential-provider-node": "^3.662.0",
     "@aws-sdk/signature-v4": "^3.374.0",
     "aws-cdk-lib": "2.195.0",
-    "axios": "^1.8.4",
+    "axios": "^1.12.2",
     "constructs": "^10.0.0",
     "esbuild": "^0.24.0",
     "agent-squad": "^0.0.14",
